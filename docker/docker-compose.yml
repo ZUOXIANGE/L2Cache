@@ -43,7 +43,7 @@ services:
   # L2Cache Examples App
   l2cache-examples:
     build:
-      context: .
+      context: ..
       dockerfile: examples/L2Cache.Examples/Dockerfile
     container_name: l2cache-examples
     restart: unless-stopped
@@ -66,20 +66,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-
-  # L2Cache基准测试应用
-  l2cache-benchmarks:
-    build:
-      context: .
-      dockerfile: benchmarks/L2Cache.Benchmarks/Dockerfile
-    container_name: l2cache-benchmarks
-    networks:
-      - l2cache-network
-    depends_on:
-      redis:
-        condition: service_healthy
-    profiles:
-      - benchmarks
 
   # OpenObserve - 全栈可观测性平台
   openobserve:

@@ -6,8 +6,13 @@
 
 L2Cache 是一个为 .NET 应用程序设计的现代化分布式二级缓存库。它无缝融合了本地内存缓存 (L1) 和 Redis 分布式缓存 (L2)，旨在为高并发应用提供极速响应能力和极致的系统可靠性。
 
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![NuGet](https://img.shields.io/badge/nuget-v1.0.0-blue)](https://www.nuget.org/packages/L2Cache)
+[![CI](https://github.com/ZUOXIANGE/L2Cache/actions/workflows/ci.yml/badge.svg)](https://github.com/ZUOXIANGE/L2Cache/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/L2Cache.svg)](https://www.nuget.org/packages/L2Cache)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/L2Cache.svg)](https://www.nuget.org/packages/L2Cache)
+[![License](https://img.shields.io/github/license/ZUOXIANGE/L2Cache)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/ZUOXIANGE/L2Cache)](https://github.com/ZUOXIANGE/L2Cache/commits/main)
+[![GitHub Issues](https://img.shields.io/github/issues/ZUOXIANGE/L2Cache)](https://github.com/ZUOXIANGE/L2Cache/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/ZUOXIANGE/L2Cache?style=social)](https://github.com/ZUOXIANGE/L2Cache/stargazers)
 
 ---
 
@@ -121,7 +126,7 @@ public class ProductCacheService : L2CacheService<int, ProductDto>
 
 ## 🤝 贡献
 
-欢迎提交 Issue 和 Pull Request！详情请查看 [CONTRIBUTING.md](CONTRIBUTING.md)。
+欢迎提交 Issue 和 Pull Request！
 
 ## 📄 许可证
 

@@ -7,7 +7,6 @@
 - .NET 8.0 或更高版本
 - Redis 服务器 (仅当使用二级缓存时需要)
   - 推荐使用 Docker 启动: `docker run -d -p 6379:6379 redis`
-  - 或使用本项目提供的脚本: `./scripts/start-redis.ps1`
 
 ## 1. 安装 NuGet 包
 

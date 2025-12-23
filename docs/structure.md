@@ -12,7 +12,6 @@
 ├── benchmarks/
 ├── docs/
 ├── docker/
-├── scripts/
 ├── .github/
 ├── README.md
 ├── CHANGELOG.md
@@ -57,4 +56,4 @@
 - 子项目命名：`L2Cache.{Module}`，示例工程命名：`L2Cache.Examples.{Scenario}`。
 - 测试项目命名：`L2Cache.Tests.{Type}`（如 `Functional`, `Performance`）。
 - 重要元文件：每个项目包含 `*.csproj`，示例含 `appsettings.json`/`appsettings.Development.json`（如需要）。
-- 脚本与容器：脚本集中在 `scripts/`；容器与监控配置集中在 `docker/`，避免分散。
+- 脚本与容器：容器与监控配置集中在 `docker/`，避免分散。

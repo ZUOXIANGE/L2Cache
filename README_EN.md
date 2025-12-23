@@ -6,8 +6,13 @@
 
 L2Cache is a modern distributed second-level cache library designed for .NET applications. It seamlessly blends local in-memory cache (L1) and Redis distributed cache (L2) to provide lightning-fast response capabilities and ultimate system reliability for high-concurrency applications.
 
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![NuGet](https://img.shields.io/badge/nuget-v1.0.0-blue)](https://www.nuget.org/packages/L2Cache)
+[![CI](https://github.com/ZUOXIANGE/L2Cache/actions/workflows/ci.yml/badge.svg)](https://github.com/ZUOXIANGE/L2Cache/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/L2Cache.svg)](https://www.nuget.org/packages/L2Cache)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/L2Cache.svg)](https://www.nuget.org/packages/L2Cache)
+[![License](https://img.shields.io/github/license/ZUOXIANGE/L2Cache)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/ZUOXIANGE/L2Cache)](https://github.com/ZUOXIANGE/L2Cache/commits/main)
+[![GitHub Issues](https://img.shields.io/github/issues/ZUOXIANGE/L2Cache)](https://github.com/ZUOXIANGE/L2Cache/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/ZUOXIANGE/L2Cache?style=social)](https://github.com/ZUOXIANGE/L2Cache/stargazers)
 
 ---
 
@@ -121,7 +126,7 @@ public class ProductCacheService : L2CacheService<int, ProductDto>
 
 ## 🤝 Contribution
 
-Issues and Pull Requests are welcome! Please check [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Issues and Pull Requests are welcome!
 
 ## 📄 License
 

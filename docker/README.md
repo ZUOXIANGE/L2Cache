@@ -2,12 +2,7 @@
 
 ## 快速开始
 
-推荐使用统一脚本一键启动（Windows PowerShell）：
-
-- 启动完整环境：`./scripts/dev-up.ps1`（可选 `-Monitoring`/`-Benchmarks`）
-- 停止环境：`./scripts/dev-down.ps1`
-
-也可直接使用 `docker-compose` 命令：
+使用 `docker-compose` 命令启动环境：
 
 ### 基础服务启动
 ```bash
@@ -25,9 +20,6 @@ docker-compose logs -f
 ```bash
 # 启动所有服务，包括OpenObserve
 docker-compose --profile monitoring up -d
-
-# 启动基准测试
-docker-compose --profile benchmarks up --build
 ```
 
 ## 服务访问
@@ -40,10 +32,9 @@ docker-compose --profile benchmarks up --build
 
 ## Dockerfile 路径规范
 
-为保持结构简洁，示例与基准测试的 Dockerfile 与项目同目录：
+为保持结构简洁，示例应用的 Dockerfile 与项目同目录：
 
 - 示例应用：`examples/L2Cache.Examples/Dockerfile`
-- 基准测试：`benchmarks/L2Cache.Benchmarks/Dockerfile`
 
 顶层 `docker-compose.yml` 已统一引用上述路径，避免重复文件。
 
@@ -160,59 +151,4 @@ docker logs -f --tail 100 [container-name]
 
 # 进入容器调试
 docker exec -it [container-name] /bin/sh
-```
-
-## 扩展部署
-
-### 生产环境建议
-
-1. **使用外部Redis集群**
-   ```yaml
-   environment:
-     - ConnectionStrings__Redis=redis-cluster:6379,password=yourpassword
-   ```
-
-2. **配置SSL/TLS**
-   ```yaml
-   environment:
-     - ASPNETCORE_URLS=https://+:5000
-     - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certificate.pfx
-     - ASPNETCORE_Kestrel__Certificates__Default__Password=yourpassword
-   ```
-
-3. **使用反向代理**
-   ```yaml
-   # 添加nginx服务
-   nginx:
-     image: nginx:alpine
-     ports:
-       - "80:80"
-       - "443:443"
-     volumes:
-       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-   ```
-
-### Kubernetes部署
-
-准备Kubernetes部署文件：
-```bash
-# 生成Kubernetes配置
-kompose convert -f docker-compose.yml
-
-# 部署到Kubernetes
-kubectl apply -f *.yaml
-```
-
-## 基准测试
-
-运行性能基准测试：
-```bash
-# 启动基准测试容器
-docker-compose --profile benchmarks up --build
-
-# 查看测试结果
-docker logs l2cache-benchmarks
-
-# 运行特定测试
-docker run --rm --network l2cache_l2cache-network l2cache-benchmarks [test-name]
 ```
