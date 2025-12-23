@@ -10,6 +10,7 @@
     <Project Path="src/L2Cache/L2Cache.csproj" />
     <Project Path="src/L2Cache.Serializers.Json/L2Cache.Serializers.Json.csproj" />
     <Project Path="src/L2Cache.Serializers.MemoryPack/L2Cache.Serializers.MemoryPack.csproj" />
+    <Project Path="src/L2Cache.Telemetry/L2Cache.Telemetry.csproj" />
   </Folder>
   <Folder Name="/examples/">
     <Project Path="examples/L2Cache.Examples/L2Cache.Examples.csproj" />
