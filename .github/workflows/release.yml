@@ -33,9 +33,19 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Get version from tag
+    - name: Set version
       id: get_version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      run: |
+        TAG_NAME=""
+        if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+        else
+          TAG_NAME=$(git describe --tags --abbrev=0)
+        fi
+        
+        # Strip 'v' prefix
+        VERSION=${TAG_NAME#v}
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
 
     - name: Restore dependencies
       run: dotnet restore L2Cache.slnx
