@@ -1,0 +1,41 @@
+@HostAddress = http://localhost:5000
+
+### Health Check
+GET {{HostAddress}}/health
+Accept: application/json
+
+### Basics - Set Cache
+POST {{HostAddress}}/api/basics/my-key?ttlSeconds=120
+Content-Type: application/json
+
+"Hello L2Cache (Simple String)"
+
+### Basics - Get Cache
+GET {{HostAddress}}/api/basics/my-key
+Accept: application/json
+
+### Basics - Remove Cache
+DELETE {{HostAddress}}/api/basics/my-key
+Accept: application/json
+
+### Product - Get (Loads from Source)
+GET {{HostAddress}}/api/product/1001
+Accept: application/json
+
+### Product - Update
+PUT {{HostAddress}}/api/product/1001
+Content-Type: application/json
+
+{
+  "id": 1001,
+  "name": "Updated Product",
+  "price": 199.99
+}
+
+### Advanced - Concurrency Test
+GET {{HostAddress}}/api/advanced/concurrency/1002?count=10
+Accept: application/json
+
+### Advanced - Switch Serializer to MemoryPack
+POST {{HostAddress}}/api/advanced/serializer/memorypack
+Accept: application/json

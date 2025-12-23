@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # Redis服务
+  redis:
+    image: redis:7-alpine
+    container_name: l2cache-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    networks:
+      - l2cache-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Redis Commander - Web管理界面
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: l2cache-redis-commander
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=admin123
+    networks:
+      - l2cache-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # L2Cache Examples App
+  l2cache-examples:
+    build:
+      context: .
+      dockerfile: examples/L2Cache.Examples/Dockerfile
+    container_name: l2cache-examples
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__Redis=redis:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve:5081
+      - OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic YWRtaW5AZXhhbXBsZS5jb206YWRtaW4xMjM=
+    networks:
+      - l2cache-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # L2Cache基准测试应用
+  l2cache-benchmarks:
+    build:
+      context: .
+      dockerfile: benchmarks/L2Cache.Benchmarks/Dockerfile
+    container_name: l2cache-benchmarks
+    networks:
+      - l2cache-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - benchmarks
+
+  # OpenObserve - 全栈可观测性平台
+  openobserve:
+    image: public.ecr.aws/zinclabs/openobserve:latest
+    container_name: l2cache-openobserve
+    restart: unless-stopped
+    ports:
+      - "5080:5080"
+      - "5081:5081"
+      - "5082:5082"
+    environment:
+      - ZO_DATA_DIR=/data
+      - ZO_ROOT_USER_EMAIL=admin@example.com
+      - ZO_ROOT_USER_PASSWORD=admin123
+    volumes:
+      - openobserve_data:/data
+    networks:
+      - l2cache-network
+    profiles:
+      - monitoring
+
+volumes:
+  redis_data:
+    driver: local
+  openobserve_data:
+    driver: local
+
+networks:
+  l2cache-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>L2Cache.Serializers.Json</PackageId>
+    <Authors>L2Cache Team</Authors>
+    <Description>L2Cache JSON serializer implementation using System.Text.Json</Description>
+    <PackageTags>l2cache;serializer;json</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <ProjectReference Include="..\L2Cache.Abstractions\L2Cache.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/L2Cache.Benchmarks/L2Cache.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/L2Cache.Abstractions/L2Cache.Abstractions.csproj" />
+    <Project Path="src/L2Cache/L2Cache.csproj" />
+    <Project Path="src/L2Cache.Serializers.Json/L2Cache.Serializers.Json.csproj" />
+    <Project Path="src/L2Cache.Serializers.MemoryPack/L2Cache.Serializers.MemoryPack.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/L2Cache.Examples/L2Cache.Examples.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/L2Cache.Tests.Functional/L2Cache.Tests.Functional.csproj" />
+  </Folder>
+</Solution>

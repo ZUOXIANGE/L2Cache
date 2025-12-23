@@ -1,0 +1,20 @@
+<Project>
+  <!-- 统一常用编译属性，不覆盖各项目的 TargetFramework 设置 -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- 按需启用预览特性（若项目使用） -->
+    <EnablePreviewFeatures>false</EnablePreviewFeatures>
+  </PropertyGroup>
+
+  <!-- 统一包源或其他全局项可在此扩展 -->
+  <!--
+  <ItemGroup>
+    <PackageReference Update="Microsoft.Extensions.Logging" Version="10.0.0" />
+  </ItemGroup>
+  -->
+</Project>

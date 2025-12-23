@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  NuGetDirectory: ${{ github.workspace }}/nuget
+
+jobs:
+  build-and-publish:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+    - name: Restore dependencies
+      run: dotnet restore L2Cache.slnx
+
+    - name: Build
+      run: dotnet build L2Cache.slnx --configuration Release --no-restore -p:Version=${{ env.VERSION }}
+
+    - name: Test
+      run: dotnet test L2Cache.slnx --configuration Release --no-build --verbosity normal
+
+    - name: Pack NuGet Packages
+      run: |
+        mkdir -p ${{ env.NuGetDirectory }}
+        
+        # Pack Core
+        dotnet pack src/L2Cache/L2Cache.csproj \
+          --configuration Release \
+          --no-build \
+          --output ${{ env.NuGetDirectory }} \
+          -p:Version=${{ env.VERSION }} \
+          -p:PackageVersion=${{ env.VERSION }}
+        
+        # Pack Abstractions
+        dotnet pack src/L2Cache.Abstractions/L2Cache.Abstractions.csproj \
+          --configuration Release \
+          --no-build \
+          --output ${{ env.NuGetDirectory }} \
+          -p:Version=${{ env.VERSION }} \
+          -p:PackageVersion=${{ env.VERSION }}
+        
+        # Pack Serializers - Json
+        dotnet pack src/L2Cache.Serializers.Json/L2Cache.Serializers.Json.csproj \
+          --configuration Release \
+          --no-build \
+          --output ${{ env.NuGetDirectory }} \
+          -p:Version=${{ env.VERSION }} \
+          -p:PackageVersion=${{ env.VERSION }}
+
+        # Pack Serializers - MemoryPack
+        dotnet pack src/L2Cache.Serializers.MemoryPack/L2Cache.Serializers.MemoryPack.csproj \
+          --configuration Release \
+          --no-build \
+          --output ${{ env.NuGetDirectory }} \
+          -p:Version=${{ env.VERSION }} \
+          -p:PackageVersion=${{ env.VERSION }}
+
+        # Pack Telemetry
+        dotnet pack src/L2Cache.Telemetry/L2Cache.Telemetry.csproj \
+          --configuration Release \
+          --no-build \
+          --output ${{ env.NuGetDirectory }} \
+          -p:Version=${{ env.VERSION }} \
+          -p:PackageVersion=${{ env.VERSION }}
+
+    - name: Publish to NuGet
+      run: |
+        dotnet nuget push ${{ env.NuGetDirectory }}/*.nupkg \
+          --api-key ${{ secrets.NUGET_API_KEY }} \
+          --source https://api.nuget.org/v3/index.json \
+          --skip-duplicate
+
+    - name: Generate Changelog
+      id: changelog
+      run: |
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "## Changes since $PREVIOUS_TAG" > RELEASE_CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> RELEASE_CHANGELOG.md
+        else
+          echo "## Initial Release" > RELEASE_CHANGELOG.md
+        fi
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        body_path: RELEASE_CHANGELOG.md
+        files: ${{ env.NuGetDirectory }}/*.nupkg
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
