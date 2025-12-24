@@ -58,6 +58,7 @@ public static class TelemetryConstants
         public const string KeyPattern = "key_pattern";
         public const string ValueType = "value_type";
         public const string Source = "source";
+        public const string KeyCount = "key_count";
     }
 
     /// <summary>

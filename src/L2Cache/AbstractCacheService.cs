@@ -859,7 +859,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             tags:
             [
                 new KeyValuePair<string, object>(TelemetryConstants.TagNames.CacheName, GetCacheName()),
-                new KeyValuePair<string, object>("key_count", keyList.Count)
+                new KeyValuePair<string, object>(TelemetryConstants.TagNames.KeyCount, keyList.Count)
             ]);
 
         var missingKeys = new List<(TKey Key, string FullKey)>();
@@ -946,7 +946,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             tags:
             [
                 new KeyValuePair<string, object>(TelemetryConstants.TagNames.CacheName, GetCacheName()),
-                new KeyValuePair<string, object>("key_count", keyList.Count)
+                new KeyValuePair<string, object>(TelemetryConstants.TagNames.KeyCount, keyList.Count)
             ]);
 
         // 1. 尝试批量获取缓存
@@ -1072,7 +1072,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             tags:
             [
                 new KeyValuePair<string, object>(TelemetryConstants.TagNames.CacheName, GetCacheName()),
-                new KeyValuePair<string, object>("key_count", keyList.Count)
+                new KeyValuePair<string, object>(TelemetryConstants.TagNames.KeyCount, keyList.Count)
             ]);
 
         // 1. Remove from Local Cache
