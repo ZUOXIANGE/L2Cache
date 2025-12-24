@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using L2Cache.Abstractions;
-using L2Cache.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace L2Cache.Benchmarks;

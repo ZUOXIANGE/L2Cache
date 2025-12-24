@@ -23,6 +23,7 @@ namespace L2Cache;
 public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, TValue> where TKey : notnull
 {
     protected const string NullValString = "@@NULL@@";
+    // ReSharper disable once StaticMemberInGenericType
     protected static readonly object NullValObj = new object();
 
     private readonly AsyncKeyedLocker<TKey> _memoryLocker = new();
@@ -403,7 +404,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                                 logger?.LogWarning($"Failed to acquire distributed lock for key {cacheKey} after {options.Lock.LockTimeout.TotalSeconds}s");
                                 break; // 降级为直接回源
                             }
-                            
+
                             await Task.Delay(50); // 简单的等待
                         }
                     }
@@ -438,10 +439,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                         // A. 使用可重入锁（AsyncLocal 或者是 Thread.CurrentThread ID 检查，但 async/await 比较麻烦）
                         // B. 将 PutAsync 逻辑拆分为 InternalPutAsync（无锁）和 PutAsync（加锁）
                         // C. 在 GetOrLoadAsync 中不调用 PutAsync，而是直接调用 InternalPutAsync
-                        
+
                         // 既然我们要修改 PutAsync 加锁，那么必须拆分。
-                        await PutAsyncInternal(key, value, expiry);
-                        
+                        await InternalPutAsync(key, value, expiry);
+
                         var elapsed = Stopwatch.GetElapsedTime(startTime);
                         logger?.LogDataSourceLoad(GetCacheName(), cacheKey, elapsed, true);
                         telemetry?.RecordDataSourceLoad(GetCacheName(), cacheKey, elapsed, true);
@@ -453,7 +454,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                         {
                             // 缓存空值
                             // 传入 default(TValue)，PutAsyncInternal 会检测 value is null 并处理
-                            await PutAsyncInternal(key, default!, options.NullValueExpiry);
+                            await InternalPutAsync(key, default!, options.NullValueExpiry);
                         }
 
                         var elapsed = Stopwatch.GetElapsedTime(startTime);
@@ -572,8 +573,8 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                     }
                     else
                     {
-                         logger?.LogWarning($"Failed to acquire distributed lock for PutAsync key: {cacheKey}");
-                         // 同样，获取失败也继续尝试写入
+                        logger?.LogWarning($"Failed to acquire distributed lock for PutAsync key: {cacheKey}");
+                        // 同样，获取失败也继续尝试写入
                     }
                 }
                 catch (Exception ex)
@@ -584,7 +585,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
 
             try
             {
-                return await PutAsyncInternal(key, value, expiry);
+                return await InternalPutAsync(key, value, expiry);
             }
             finally
             {
@@ -610,7 +611,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
     /// <param name="value">要缓存的数据。</param>
     /// <param name="expiry">缓存过期时间。</param>
     /// <returns>写入的数据。</returns>
-    protected virtual async Task<TValue> PutAsyncInternal(TKey key, TValue value, TimeSpan? expiry = null)
+    protected virtual async Task<TValue> InternalPutAsync(TKey key, TValue value, TimeSpan? expiry = null)
     {
         var startTime = Stopwatch.GetTimestamp();
         var cacheKey = BuildCacheKey(key);
@@ -629,21 +630,18 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
         {
             var database = GetRedisDatabase();
             var serializer = GetCacheSerializer();
-            
+
             string serializedValue;
             // 处理空值
             if (value is null)
             {
-                 serializedValue = NullValString;
-                 // 如果未指定过期时间，则使用配置的空值过期时间
-                 if (expiry == null)
-                 {
-                     expiry = GetOptions().NullValueExpiry;
-                 }
+                serializedValue = NullValString;
+                // 如果未指定过期时间，则使用配置的空值过期时间
+                expiry ??= GetOptions().NullValueExpiry;
             }
             else
             {
-                 serializedValue = serializer.SerializeToString(value);
+                serializedValue = serializer.SerializeToString(value);
             }
 
             if (database != null)
@@ -656,7 +654,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                 {
                     await database.StringSetAsync(fullKey, serializedValue);
                 }
-                
+
                 OnRedisCacheSet(key, value, expiry);
             }
 
@@ -664,20 +662,20 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             if (localCache != null)
             {
                 var options = CreateLocalCacheEntryOptions(key, expiry);
-                
+
                 // 处理本地缓存空值
                 object localValue = (object?)value ?? NullValObj;
                 localCache.Set(fullKey, localValue, options);
-                
-                OnLocalCacheSet(key, value);
+
+                OnLocalCacheSet(key, value!);
             }
 
             var elapsed = Stopwatch.GetElapsedTime(startTime);
-            var dataSize = serializedValue?.Length ?? 0;
+            var dataSize = serializedValue.Length;
             logger?.LogCacheSet(GetCacheName(), "L2", cacheKey, elapsed, expiry, dataSize);
             telemetry?.RecordCacheSet(GetCacheName(), CacheLevel.L2, cacheKey, elapsed, dataSize);
 
-            return value;
+            return value!;
         }
         catch (Exception ex)
         {
@@ -916,7 +914,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                     continue;
                 }
 
-                localCache.Set(fullKey, deserialized, GetLocalCacheExpiry());
+                localCache.Set(fullKey, deserialized, CreateLocalCacheEntryOptions(key));
                 OnLocalCacheSet(key, deserialized);
             }
         }
@@ -970,7 +968,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             foreach (var kvp in loadedData)
             {
                 result[kvp.Key] = kvp.Value;
-                
+
                 // 4. 回填缓存
                 await BackfillCacheAsync(kvp.Key, kvp.Value, expiry);
             }
@@ -979,11 +977,11 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
         // 5. Handle Null Value Caching
         if (GetOptions().CacheNullValues)
         {
-             var nullKeys = missingKeys.Where(k => !result.ContainsKey(k)).ToList();
-             foreach (var key in nullKeys)
-             {
-                 await BackfillCacheAsync(key, default!, GetOptions().NullValueExpiry);
-             }
+            var nullKeys = missingKeys.Where(k => !result.ContainsKey(k)).ToList();
+            foreach (var key in nullKeys)
+            {
+                await BackfillCacheAsync(key, default!, GetOptions().NullValueExpiry);
+            }
         }
 
         return result;
@@ -996,7 +994,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
     {
         var options = GetOptions();
         var cacheKey = BuildCacheKey(key);
-                
+
         // 1. Memory Lock
         IDisposable? memoryLock = null;
         if (options.Lock.EnabledMemoryLock)
@@ -1041,7 +1039,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                 var exists = await ExistsAsync(key);
                 if (!exists)
                 {
-                    await PutAsyncInternal(key, value, expiry);
+                    await InternalPutAsync(key, value, expiry);
                 }
             }
             finally
@@ -1067,7 +1065,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
     /// <returns>成功移除的缓存项数量。</returns>
     public virtual async Task<long> BatchEvictAsync(List<TKey> keyList)
     {
-        if (keyList == null || keyList.Count == 0) return 0;
+        if (keyList.Count == 0) return 0;
 
         var telemetry = GetTelemetryProvider();
         using var activity = telemetry?.StartActivity(TelemetryConstants.ActivityNames.CacheBatchEvict,

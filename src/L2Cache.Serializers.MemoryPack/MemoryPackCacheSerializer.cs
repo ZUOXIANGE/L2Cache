@@ -127,28 +127,3 @@ public class MemoryPackCacheSerializer : ICacheSerializer
         }
     }
 }
-
-/// <summary>
-/// MemoryPack 序列化器的扩展方法
-/// </summary>
-public static class MemoryPackSerializerExtensions
-{
-    /// <summary>
-    /// 检查 MemoryPack 是否可用
-    /// </summary>
-    /// <returns>如果 MemoryPack 可用返回 true，否则返回 false</returns>
-    public static bool IsMemoryPackAvailable()
-    {
-        return true;
-    }
-
-    /// <summary>
-    /// 获取推荐的序列化器
-    /// 如果 MemoryPack 可用，返回 MemoryPack 序列化器，否则返回 JSON 序列化器
-    /// </summary>
-    /// <returns>推荐的缓存序列化器</returns>
-    public static ICacheSerializer GetRecommendedSerializer()
-    {
-        return new MemoryPackCacheSerializer();
-    }
-}

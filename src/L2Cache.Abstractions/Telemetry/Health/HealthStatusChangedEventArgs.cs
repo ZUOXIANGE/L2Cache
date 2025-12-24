@@ -1,5 +1,3 @@
-using System;
-
 namespace L2Cache.Abstractions.Telemetry;
 
 /// <summary>

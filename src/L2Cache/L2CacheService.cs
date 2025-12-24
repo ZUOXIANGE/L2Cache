@@ -93,7 +93,7 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
         
     protected override ICacheSerializer GetCacheSerializer() => _serializer;
 
-    protected override ILogger? GetLogger() => _logger;
+    protected override ILogger GetLogger() => _logger;
 
     protected override ITelemetryProvider? GetTelemetryProvider() => _telemetryProvider;
 

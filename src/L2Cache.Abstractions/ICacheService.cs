@@ -1,7 +1,3 @@
-using Microsoft.Extensions.Logging;
-using L2Cache.Abstractions.Telemetry;
-using L2Cache.Abstractions.Serialization;
-
 namespace L2Cache.Abstractions;
 
 /// <summary>

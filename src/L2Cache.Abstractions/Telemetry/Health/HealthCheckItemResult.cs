@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace L2Cache.Abstractions.Telemetry;
 
 /// <summary>

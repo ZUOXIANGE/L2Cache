@@ -1,17 +1,23 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using L2Cache.Configuration;
 using L2Cache.Abstractions;
 using L2Cache.Abstractions.Telemetry;
-using L2Cache.Telemetry;
-using L2Cache.Internal;
 using L2Cache.Background;
+using L2Cache.Configuration;
+using L2Cache.Internal;
+using L2Cache.Telemetry;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using StackExchange.Redis;
 
-namespace L2Cache.Extensions;
+namespace L2Cache;
 
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// AddL2Cache
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="configure"></param>
+    /// <returns></returns>
     public static IServiceCollection AddL2Cache(this IServiceCollection services, Action<L2CacheOptions> configure)
     {
         var options = new L2CacheOptions();
@@ -63,12 +69,13 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 启用指定类型的后台缓存刷新
     /// </summary>
+    /// <param name="services"></param>
     /// <param name="configurePolicy">可选的策略配置，用于自定义Key的刷新间隔</param>
     public static IServiceCollection AddL2CacheRefresh<TKey, TValue>(this IServiceCollection services, Func<IServiceProvider, ICacheRefreshPolicy<TKey, TValue>>? configurePolicy = null)
         where TKey : notnull
     {
         services.AddHostedService<CacheRefreshBackgroundService<TKey, TValue>>();
-        
+
         if (configurePolicy != null)
         {
             services.AddSingleton(configurePolicy);

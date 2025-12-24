@@ -1,3 +1,4 @@
+using L2Cache;
 using L2Cache.Extensions;
 using L2Cache.Examples.Services;
 using Microsoft.OpenApi;

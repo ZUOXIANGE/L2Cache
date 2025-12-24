@@ -16,12 +16,8 @@ public static class TelemetryConstants
     {
         public const string CacheGet = "cache.get";
         public const string CacheSet = "cache.set";
-        public const string CacheDelete = "cache.delete";
-        public const string CacheClear = "cache.clear";
         public const string CacheExists = "cache.exists";
         public const string CacheBatchGet = "cache.batch_get";
-        public const string CacheBatchSet = "cache.batch_set";
-        public const string CacheBatchDelete = "cache.batch_delete";
         public const string CacheReload = "cache.reload";
         public const string CacheEvict = "cache.evict";
         public const string CacheGetOrLoad = "cache.get_or_load";

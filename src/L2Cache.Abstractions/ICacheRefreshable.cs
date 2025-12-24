@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace L2Cache.Abstractions;
 
 /// <summary>
