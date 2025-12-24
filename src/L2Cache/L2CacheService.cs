@@ -20,7 +20,7 @@ namespace L2Cache;
 /// </summary>
 /// <typeparam name="TKey">缓存键的类型。</typeparam>
 /// <typeparam name="TValue">缓存值的类型。</typeparam>
-public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue> where TKey : notnull
+public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, ICacheRefreshable<TKey> where TKey : notnull
 {
     private readonly IDatabase? _redisDatabase;
     private readonly IMemoryCache? _localCache;
@@ -186,11 +186,12 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue> w
     /// </summary>
     public async Task RefreshKeyAsync(TKey key)
     {
-        var fullKey = $"{GetCacheName()}:{BuildCacheKey(key)}";
+        var fullKey = GetFullKey(key);
         
         // 1. 检查本地缓存是否仍然存在 (Double Check)
         // 如果本地缓存已经消失，说明不再需要刷新（或者是已经被淘汰了）
-        if (_localCache == null || !_localCache.TryGetValue(fullKey, out TValue? localValue))
+        // 注意：使用 object 接收，以兼容 NullValObj (当 TValue 不为 object 时，TryGetValue<TValue> 会失败)
+        if (_localCache == null || !_localCache.TryGetValue(fullKey, out object? localObj))
         {
             _keyTracker?.Untrack(key);
             return;
@@ -204,11 +205,21 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue> w
             var value = await _redisDatabase.StringGetAsync(fullKey);
             if (value.HasValue)
             {
-                newValue = _serializer.DeserializeFromString<TValue>(value!);
+                if (value == NullValString)
+                {
+                    newValue = default;
+                }
+                else
+                {
+                    newValue = _serializer.DeserializeFromString<TValue>(value!);
+                }
             }
         }
 
-        // 3. 如果 Redis 中没有 (或 Redis 未启用)，尝试从数据源加载
+        // 3. 如果 Redis 中没有 (或 Redis 未启用)，或者 Redis 中是空值，尝试从数据源加载
+        // 注意：如果 Redis 中缓存的是空值 (NullValString)，newValue 为 default (null)，这里也会触发回源。
+        // 这是符合预期的设计：后台刷新任务 (Refresh) 的目的就是保持数据的"新鲜度"。
+        // 对于空值缓存，我们需要定期确认数据源中是否仍然为空，或者是否有新数据产生。
         if (newValue == null)
         {
             newValue = await QueryDataAsync(key);
@@ -225,8 +236,18 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue> w
         }
         else
         {
-            // 数据源和 L2 中都不存在了，说明数据已被物理删除，应从 L1 中移除并停止跟踪
-            await EvictAsync(key);
+            // 数据源返回 null
+            if (_options.CacheNullValues)
+            {
+                // 如果开启了空值缓存，则更新空值缓存
+                await PutAsync(key, default!, _options.NullValueExpiry);
+                _keyTracker?.UpdateNextRefresh(key);
+            }
+            else
+            {
+                // 数据源和 L2 中都不存在了，说明数据已被物理删除，应从 L1 中移除并停止跟踪
+                await EvictAsync(key);
+            }
         }
     }
 

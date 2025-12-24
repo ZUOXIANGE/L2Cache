@@ -22,7 +22,20 @@ namespace L2Cache;
 /// <typeparam name="TValue">缓存 Value 的类型。</typeparam>
 public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, TValue> where TKey : notnull
 {
+    protected const string NullValString = "@@NULL@@";
+    protected static readonly object NullValObj = new object();
+
     private readonly AsyncKeyedLocker<TKey> _memoryLocker = new();
+
+    /// <summary>
+    /// 内部缓存查询结果状态
+    /// </summary>
+    protected enum CacheStatus
+    {
+        Found,
+        FoundNull,
+        NotFound
+    }
 
     #region 1. 基础配置与工具 (Infrastructure & Tools)
 
@@ -30,30 +43,35 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
     /// 获取缓存名称。
     /// <para>通常用于 Redis Key 的前缀，或在日志和遥测中作为标识。</para>
     /// </summary>
+    /// <returns>缓存名称字符串。</returns>
     public abstract string GetCacheName();
 
     /// <summary>
     /// 获取缓存配置选项。
     /// <para>用于控制锁策略等行为。</para>
     /// </summary>
+    /// <returns>缓存配置选项对象。</returns>
     protected virtual L2CacheOptions GetOptions() => new L2CacheOptions();
 
     /// <summary>
     /// 获取缓存序列化器。
     /// <para>默认使用 JSON 序列化器 (<see cref="JsonCacheSerializer"/>)。</para>
     /// </summary>
+    /// <returns>缓存序列化器实例。</returns>
     protected virtual ICacheSerializer GetCacheSerializer() => new JsonCacheSerializer();
 
     /// <summary>
     /// 获取遥测提供者。
     /// <para>用于记录分布式追踪（Activity）和指标（Metrics）。默认为 null（不记录）。</para>
     /// </summary>
+    /// <returns>遥测提供者实例，如果未启用则返回 null。</returns>
     protected virtual ITelemetryProvider? GetTelemetryProvider() => null;
 
     /// <summary>
     /// 获取日志记录器。
     /// <para>用于记录缓存操作的日志（命中、未命中、错误等）。默认为 null。</para>
     /// </summary>
+    /// <returns>日志记录器实例，如果未启用则返回 null。</returns>
     protected virtual ILogger? GetLogger() => null;
 
     /// <summary>
@@ -75,17 +93,21 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
     /// <summary>
     /// 获取 Redis 数据库实例。
     /// </summary>
+    /// <returns>Redis 数据库实例，如果未启用 Redis 则返回 null。</returns>
     protected abstract IDatabase? GetRedisDatabase();
 
     /// <summary>
     /// 获取本地缓存（IMemoryCache）实例。
     /// </summary>
+    /// <returns>本地缓存实例，如果未启用本地缓存则返回 null。</returns>
     protected abstract IMemoryCache? GetLocalCache();
 
     /// <summary>
     /// 当本地缓存被设置时的回调方法。
     /// <para>可用于扩展逻辑，例如维护一个辅助的 Key 集合，或更新滑动过期时间。</para>
     /// </summary>
+    /// <param name="key">业务 Key。</param>
+    /// <param name="value">缓存值。</param>
     protected virtual void OnLocalCacheSet(TKey key, TValue value) { }
 
     /// <summary>
@@ -190,12 +212,11 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
     #region 3. 单条缓存操作 (Single Item Operations)
 
     /// <summary>
-    /// 获取缓存数据（仅查询缓存）。
-    /// <para>查询顺序：L1 (Local) -> L2 (Redis)。如果 L1 命中则直接返回；如果 L2 命中则回填 L1 并返回。</para>
+    /// 内部获取缓存方法，区分 "未命中" 和 "命中空值"。
     /// </summary>
     /// <param name="key">业务 Key。</param>
-    /// <returns>缓存数据，如果未命中则返回 null/default。</returns>
-    public virtual async Task<TValue?> GetAsync(TKey key)
+    /// <returns>一个包含缓存状态和值的元组。</returns>
+    protected virtual async Task<(CacheStatus Status, TValue? Value)> GetInternalAsync(TKey key)
     {
         var startTime = Stopwatch.GetTimestamp();
         var cacheKey = BuildCacheKey(key);
@@ -212,13 +233,20 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
 
         try
         {
+            // 1. Check L1 (Local Cache)
             var localCache = GetLocalCache();
-            if (localCache != null && localCache.TryGetValue(fullKey, out TValue? localValue))
+            if (localCache != null && localCache.TryGetValue(fullKey, out object? localObj))
             {
                 var elapsed = Stopwatch.GetElapsedTime(startTime);
                 logger?.LogCacheHit(GetCacheName(), "L1", cacheKey, elapsed);
                 telemetry?.RecordCacheHit(GetCacheName(), CacheLevel.L1, cacheKey, elapsed);
-                return localValue;
+
+                if (localObj == NullValObj)
+                {
+                    return (CacheStatus.FoundNull, default);
+                }
+
+                return (CacheStatus.Found, (TValue?)localObj);
             }
 
             if (localCache != null)
@@ -228,6 +256,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                 telemetry?.RecordCacheMiss(GetCacheName(), CacheLevel.L1, cacheKey, elapsed);
             }
 
+            // 2. Check L2 (Redis)
             var database = GetRedisDatabase();
             if (database != null)
             {
@@ -235,25 +264,40 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
 
                 if (value.HasValue)
                 {
+                    var elapsed = Stopwatch.GetElapsedTime(startTime);
+                    logger?.LogCacheHit(GetCacheName(), "L2", cacheKey, elapsed);
+                    telemetry?.RecordCacheHit(GetCacheName(), CacheLevel.L2, cacheKey, elapsed);
+
+                    if (value == NullValString)
+                    {
+                        // Backfill L1 with NullValObj
+                        if (localCache != null)
+                        {
+                            // 使用较短的过期时间或跟随 Redis
+                            var options = CreateLocalCacheEntryOptions(key);
+                            localCache.Set(fullKey, NullValObj, options);
+                        }
+                        return (CacheStatus.FoundNull, default);
+                    }
+
                     var serializer = GetCacheSerializer();
                     var deserializedValue = serializer.DeserializeFromString<TValue>(value!);
+
                     if (localCache != null && deserializedValue != null)
                     {
                         var options = CreateLocalCacheEntryOptions(key);
                         localCache.Set(fullKey, deserializedValue, options);
                         OnLocalCacheSet(key, deserializedValue);
                     }
-                    var elapsed = Stopwatch.GetElapsedTime(startTime);
-                    logger?.LogCacheHit(GetCacheName(), "L2", cacheKey, elapsed);
-                    telemetry?.RecordCacheHit(GetCacheName(), CacheLevel.L2, cacheKey, elapsed);
-                    return deserializedValue;
+
+                    return (CacheStatus.Found, deserializedValue);
                 }
             }
 
             var elapsedMiss = Stopwatch.GetElapsedTime(startTime);
             logger?.LogCacheMiss(GetCacheName(), "L2", cacheKey, elapsedMiss);
             telemetry?.RecordCacheMiss(GetCacheName(), CacheLevel.L2, cacheKey, elapsedMiss);
-            return default;
+            return (CacheStatus.NotFound, default);
         }
         catch (Exception ex)
         {
@@ -261,9 +305,20 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             logger?.LogCacheError(GetCacheName(), "Get", cacheKey, ex, elapsed);
             telemetry?.RecordCacheError(GetCacheName(), "Get", ex, elapsed);
             telemetry?.RecordException(ex);
-            // throw; // Resilience: treat as cache miss
-            return default;
+            return (CacheStatus.NotFound, default);
         }
+    }
+
+    /// <summary>
+    /// 获取缓存数据（仅查询缓存）。
+    /// <para>查询顺序：L1 (Local) -> L2 (Redis)。如果 L1 命中则直接返回；如果 L2 命中则回填 L1 并返回。</para>
+    /// </summary>
+    /// <param name="key">业务 Key。</param>
+    /// <returns>缓存数据，如果未命中则返回 null/default。</returns>
+    public virtual async Task<TValue?> GetAsync(TKey key)
+    {
+        var (_, value) = await GetInternalAsync(key);
+        return value;
     }
 
     /// <summary>
@@ -292,10 +347,14 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
         try
         {
             // 1. First Check (No Lock)
-            var cachedValue = await GetAsync(key);
-            if (cachedValue != null && !EqualityComparer<TValue?>.Default.Equals(cachedValue, default))
+            var (status, cachedValue) = await GetInternalAsync(key);
+            if (status == CacheStatus.Found)
             {
                 return cachedValue;
+            }
+            if (status == CacheStatus.FoundNull)
+            {
+                return default;
             }
 
             // 2. Memory Lock
@@ -310,11 +369,9 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                 // 3. Double Check (Inside Memory Lock)
                 if (options.Lock.EnabledMemoryLock)
                 {
-                    cachedValue = await GetAsync(key);
-                    if (cachedValue != null && !EqualityComparer<TValue?>.Default.Equals(cachedValue, default))
-                    {
-                        return cachedValue;
-                    }
+                    (status, cachedValue) = await GetInternalAsync(key);
+                    if (status == CacheStatus.Found) return cachedValue;
+                    if (status == CacheStatus.FoundNull) return default;
                 }
 
                 // 4. Distributed Lock (Inside Memory Lock to reduce contention on Redis)
@@ -363,11 +420,9 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                     // 防止其他节点已经加载完了
                     if (hasDistributedLock)
                     {
-                        cachedValue = await GetAsync(key);
-                        if (cachedValue != null && !EqualityComparer<TValue?>.Default.Equals(cachedValue, default))
-                        {
-                            return cachedValue;
-                        }
+                        (status, cachedValue) = await GetInternalAsync(key);
+                        if (status == CacheStatus.Found) return cachedValue;
+                        if (status == CacheStatus.FoundNull) return default;
                     }
 
                     // 6. Query Data Source
@@ -393,6 +448,14 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                     }
                     else
                     {
+                        // 8. Handle Null Value Caching
+                        if (options.CacheNullValues)
+                        {
+                            // 缓存空值
+                            // 传入 default(TValue)，PutAsyncInternal 会检测 value is null 并处理
+                            await PutAsyncInternal(key, default!, options.NullValueExpiry);
+                        }
+
                         var elapsed = Stopwatch.GetElapsedTime(startTime);
                         logger?.LogDataSourceLoad(GetCacheName(), cacheKey, elapsed, false);
                         telemetry?.RecordDataSourceLoad(GetCacheName(), cacheKey, elapsed, false);
@@ -543,6 +606,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
     /// 内部写入缓存逻辑（无锁）。
     /// <para>供 GetOrLoadAsync 等内部已持有锁的方法调用。</para>
     /// </summary>
+    /// <param name="key">业务 Key。</param>
+    /// <param name="value">要缓存的数据。</param>
+    /// <param name="expiry">缓存过期时间。</param>
+    /// <returns>写入的数据。</returns>
     protected virtual async Task<TValue> PutAsyncInternal(TKey key, TValue value, TimeSpan? expiry = null)
     {
         var startTime = Stopwatch.GetTimestamp();
@@ -562,7 +629,22 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
         {
             var database = GetRedisDatabase();
             var serializer = GetCacheSerializer();
-            var serializedValue = serializer.SerializeToString(value);
+            
+            string serializedValue;
+            // 处理空值
+            if (value is null)
+            {
+                 serializedValue = NullValString;
+                 // 如果未指定过期时间，则使用配置的空值过期时间
+                 if (expiry == null)
+                 {
+                     expiry = GetOptions().NullValueExpiry;
+                 }
+            }
+            else
+            {
+                 serializedValue = serializer.SerializeToString(value);
+            }
 
             if (database != null)
             {
@@ -582,7 +664,11 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             if (localCache != null)
             {
                 var options = CreateLocalCacheEntryOptions(key, expiry);
-                localCache.Set(fullKey, value, options);
+                
+                // 处理本地缓存空值
+                object localValue = (object?)value ?? NullValObj;
+                localCache.Set(fullKey, localValue, options);
+                
                 OnLocalCacheSet(key, value);
             }
 
@@ -881,135 +967,147 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
         // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         if (loadedData != null)
         {
-            var options = GetOptions();
             foreach (var kvp in loadedData)
             {
                 result[kvp.Key] = kvp.Value;
                 
                 // 4. 回填缓存
-                // 改进：使用 "Check-Then-Act" 模式防止 Zombie Cache（覆盖并发写入的新值）
-                // 即使是 Batch 操作，回填时也应逐个加锁检查
-                
-                var key = kvp.Key;
-                var value = kvp.Value;
-                var cacheKey = BuildCacheKey(key);
-                
-                // 4.1 Memory Lock
-                IDisposable? memoryLock = null;
-                if (options.Lock.EnabledMemoryLock)
-                {
-                    try
-                    {
-                        memoryLock = await _memoryLocker.LockAsync(key, options.Lock.LockTimeout);
-                    }
-                    catch (TimeoutException)
-                    {
-                        GetLogger()?.LogWarning($"Failed to acquire memory lock for Batch backfill key: {cacheKey}");
-                    }
-                }
-
-                try
-                {
-                    // 4.2 Distributed Lock
-                    var database = GetRedisDatabase();
-                    var lockKey = $"lock:{GetFullKey(cacheKey)}";
-                    var lockValue = Guid.NewGuid().ToString();
-                    var hasDistributedLock = false;
-
-                    if (options.Lock.EnabledDistributedLock && database != null)
-                    {
-                        try
-                        {
-                            if (await database.LockTakeAsync(lockKey, lockValue, options.Lock.DistributedLockExpiry))
-                            {
-                                hasDistributedLock = true;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            GetLogger()?.LogWarning(ex, $"Error acquiring distributed lock for Batch backfill key {cacheKey}");
-                        }
-                    }
-
-                    try
-                    {
-                        // 4.3 Double Check
-                        // 如果缓存中已经存在值（被并发写入），则放弃回填（认为 DB 数据可能陈旧）
-                        var exists = await ExistsAsync(key);
-                        if (!exists)
-                        {
-                            await PutAsyncInternal(key, value, expiry);
-                        }
-                    }
-                    finally
-                    {
-                        // 4.4 Release Distributed Lock
-                        if (hasDistributedLock && database != null)
-                        {
-                            await database.LockReleaseAsync(lockKey, lockValue);
-                        }
-                    }
-                }
-                finally
-                {
-                    // 4.5 Release Memory Lock
-                    memoryLock?.Dispose();
-                }
+                await BackfillCacheAsync(kvp.Key, kvp.Value, expiry);
             }
+        }
+
+        // 5. Handle Null Value Caching
+        if (GetOptions().CacheNullValues)
+        {
+             var nullKeys = missingKeys.Where(k => !result.ContainsKey(k)).ToList();
+             foreach (var key in nullKeys)
+             {
+                 await BackfillCacheAsync(key, default!, GetOptions().NullValueExpiry);
+             }
         }
 
         return result;
     }
 
     /// <summary>
+    /// 回填缓存（带锁）。
+    /// </summary>
+    private async Task BackfillCacheAsync(TKey key, TValue value, TimeSpan? expiry)
+    {
+        var options = GetOptions();
+        var cacheKey = BuildCacheKey(key);
+                
+        // 1. Memory Lock
+        IDisposable? memoryLock = null;
+        if (options.Lock.EnabledMemoryLock)
+        {
+            try
+            {
+                memoryLock = await _memoryLocker.LockAsync(key, options.Lock.LockTimeout);
+            }
+            catch (TimeoutException)
+            {
+                GetLogger()?.LogWarning($"Failed to acquire memory lock for Backfill key: {cacheKey}");
+            }
+        }
+
+        try
+        {
+            // 2. Distributed Lock
+            var database = GetRedisDatabase();
+            var lockKey = $"lock:{GetFullKey(cacheKey)}";
+            var lockValue = Guid.NewGuid().ToString();
+            var hasDistributedLock = false;
+
+            if (options.Lock.EnabledDistributedLock && database != null)
+            {
+                try
+                {
+                    if (await database.LockTakeAsync(lockKey, lockValue, options.Lock.DistributedLockExpiry))
+                    {
+                        hasDistributedLock = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    GetLogger()?.LogWarning(ex, $"Error acquiring distributed lock for Backfill key {cacheKey}");
+                }
+            }
+
+            try
+            {
+                // 3. Double Check
+                // 如果缓存中已经存在值（被并发写入），则放弃回填（认为 DB 数据可能陈旧）
+                var exists = await ExistsAsync(key);
+                if (!exists)
+                {
+                    await PutAsyncInternal(key, value, expiry);
+                }
+            }
+            finally
+            {
+                // Release Distributed Lock
+                if (hasDistributedLock && database != null)
+                {
+                    await database.LockReleaseAsync(lockKey, lockValue);
+                }
+            }
+        }
+        finally
+        {
+            // Release Memory Lock
+            memoryLock?.Dispose();
+        }
+    }
+
+    /// <summary>
     /// 批量淘汰（移除）缓存项。
-    /// <para>优化策略：使用 Redis DEL 命令一次性删除多个 Key。</para>
     /// </summary>
     /// <param name="keyList">业务 Key 列表。</param>
-    /// <returns>成功从 Redis 移除的 Key 数量（不包含本地缓存的移除计数）。</returns>
+    /// <returns>成功移除的缓存项数量。</returns>
     public virtual async Task<long> BatchEvictAsync(List<TKey> keyList)
     {
-        if (!keyList.Any()) return 0;
+        if (keyList == null || keyList.Count == 0) return 0;
 
         var telemetry = GetTelemetryProvider();
-        using var activity = telemetry?.StartActivity(TelemetryConstants.ActivityNames.CacheBatchDelete,
+        using var activity = telemetry?.StartActivity(TelemetryConstants.ActivityNames.CacheBatchEvict,
             tags:
             [
                 new KeyValuePair<string, object>(TelemetryConstants.TagNames.CacheName, GetCacheName()),
                 new KeyValuePair<string, object>("key_count", keyList.Count)
             ]);
 
-        var database = GetRedisDatabase();
+        // 1. Remove from Local Cache
         var localCache = GetLocalCache();
-        var redisKeys = keyList.Select(k => (RedisKey)GetFullKey(k)).ToArray();
-
-        // 1. 移除本地缓存
         if (localCache != null)
         {
             foreach (var key in keyList)
             {
-                localCache.Remove(GetFullKey(key));
+                var fullKey = GetFullKey(key);
+                localCache.Remove(fullKey);
             }
         }
 
-        // 2. 移除 Redis 缓存（使用 DEL 命令批量删除）
-        if (database == null)
+        // 2. Remove from Redis
+        var database = GetRedisDatabase();
+        if (database != null)
         {
-            return 0;
+            try
+            {
+                var redisKeys = keyList.Select(k => (RedisKey)GetFullKey(k)).ToArray();
+                return await database.KeyDeleteAsync(redisKeys);
+            }
+            catch (Exception ex)
+            {
+                GetLogger()?.LogWarning(ex, "BatchEvictAsync Redis error");
+                // If Redis fails, we still removed from local cache.
+                return 0;
+            }
         }
 
-        try
-        {
-            return await database.KeyDeleteAsync(redisKeys);
-        }
-        catch (Exception ex)
-        {
-            GetLogger()?.LogWarning(ex, "BatchEvictAsync Redis error");
-            telemetry?.RecordException(ex);
-        }
-        return 0;
+        // If only local cache is used, we assume all provided keys were "evicted" (even if they didn't exist)
+        return keyList.Count;
     }
 
     #endregion
-
 }

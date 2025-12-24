@@ -317,7 +317,7 @@ public class AbstractCacheServiceTracingTests
         // Arrange (准备)
         var telemetryMock = new Mock<ITelemetryProvider>();
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheBatchDelete, 
+            TelemetryConstants.ActivityNames.CacheBatchEvict, 
             It.IsAny<ActivityKind>(), 
             It.IsAny<ActivityContext>(), 
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
@@ -330,7 +330,7 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheBatchDelete, 
+            TelemetryConstants.ActivityNames.CacheBatchEvict, 
             It.IsAny<ActivityKind>(), 
             It.IsAny<ActivityContext>(), 
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);

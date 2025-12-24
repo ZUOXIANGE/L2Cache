@@ -24,8 +24,7 @@ public class DefaultHealthCheckerTests
         _mockServiceProvider = new Mock<IServiceProvider>();
         _options = new HealthCheckerOptions
         {
-            CheckInterval = TimeSpan.FromSeconds(1),
-            FailureThreshold = 3
+            CheckInterval = TimeSpan.FromSeconds(1)
         };
         _healthChecker = new DefaultHealthChecker(_mockServiceProvider.Object, _options, _mockLogger.Object);
     }
@@ -188,5 +187,119 @@ public class DefaultHealthCheckerTests
 
         // Assert (断言)
         _healthChecker.IsMonitoring.Should().BeFalse();
+    }
+
+    /// <summary>
+    /// 测试添加和移除健康检查项
+    /// </summary>
+    [Fact]
+    public async Task AddAndRemoveHealthCheck_ShouldWorkCorrectly()
+    {
+        // Arrange
+        var checkName = "test_check";
+        var checker = new Func<CancellationToken, Task<HealthCheckItemResult>>(ct => 
+            Task.FromResult(new HealthCheckItemResult(HealthStatus.Healthy, "OK")));
+
+        // Act - Add
+        _healthChecker.AddHealthCheck(checkName, checker);
+        
+        // Assert - Add
+        _healthChecker.GetHealthCheckNames().Should().Contain(checkName);
+
+        // Act - Execute to verify it runs
+        var result = await _healthChecker.CheckHealthAsync();
+        result.Items.Should().ContainKey(checkName);
+
+        // Act - Remove
+        var removed = _healthChecker.RemoveHealthCheck(checkName);
+
+        // Assert - Remove
+        removed.Should().BeTrue();
+        _healthChecker.GetHealthCheckNames().Should().NotContain(checkName);
+    }
+
+    /// <summary>
+    /// 测试自定义检查抛出异常时应被捕获并标记为不健康
+    /// </summary>
+    [Fact]
+    public async Task CheckHealthAsync_WithThrowingCheck_ShouldHandleException()
+    {
+        // Arrange
+        _healthChecker.AddHealthCheck("failing_check", ct => throw new Exception("Boom!"));
+
+        // Act
+        var result = await _healthChecker.CheckHealthAsync();
+
+        // Assert
+        result.Status.Should().Be(HealthStatus.Unhealthy);
+        result.Items.Should().ContainKey("failing_check");
+        result.Items["failing_check"].Status.Should().Be(HealthStatus.Unhealthy);
+        result.Items["failing_check"].Description.Should().Contain("Boom!");
+    }
+
+    /// <summary>
+    /// 测试历史记录功能
+    /// </summary>
+    [Fact]
+    public async Task GetHealthHistory_ShouldReturnRecentResults()
+    {
+        // Arrange
+        // 运行几次检查
+        await _healthChecker.CheckHealthAsync();
+        await _healthChecker.CheckHealthAsync();
+        await _healthChecker.CheckHealthAsync();
+
+        // Act
+        var history = _healthChecker.GetHealthHistory(2).ToList();
+
+        // Assert
+        history.Should().HaveCount(2);
+        history.All(x => x.Status != HealthStatus.Unknown).Should().BeTrue();
+    }
+
+    /// <summary>
+    /// 测试状态变更事件
+    /// </summary>
+    [Fact]
+    public async Task CheckHealthAsync_OnStatusChange_ShouldRaiseEvent()
+    {
+        // Arrange
+        var eventRaised = false;
+        HealthStatus? oldStatus = null;
+        HealthStatus? newStatus = null;
+
+        _healthChecker.HealthStatusChanged += (sender, args) =>
+        {
+            eventRaised = true;
+            oldStatus = args.PreviousStatus;
+            newStatus = args.CurrentStatus;
+        };
+
+        // 添加一个控制状态的检查
+        var isHealthy = true;
+        _healthChecker.AddHealthCheck("toggle_check", ct => 
+            Task.FromResult(new HealthCheckItemResult(
+                isHealthy ? HealthStatus.Healthy : HealthStatus.Unhealthy, 
+                "Toggle")));
+
+        // Act 1: 初始检查 (Unknown -> Healthy)
+        await _healthChecker.CheckHealthAsync();
+        
+        // Assert 1
+        eventRaised.Should().BeTrue();
+        oldStatus.Should().Be(HealthStatus.Unknown);
+        newStatus.Should().Be(HealthStatus.Healthy);
+
+        // Reset
+        eventRaised = false;
+
+        // Act 2: 变为不健康 (Healthy -> Unhealthy)
+        isHealthy = false;
+        await _healthChecker.CheckHealthAsync();
+
+        // Assert 2
+        eventRaised.Should().BeTrue();
+        oldStatus.Should().Be(HealthStatus.Healthy);
+        newStatus.Should().Be(HealthStatus.Unhealthy);
     }
 }

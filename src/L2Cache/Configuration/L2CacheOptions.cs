@@ -94,4 +94,16 @@ public class L2CacheOptions
         /// </summary>
         public TimeSpan DistributedLockExpiry { get; set; } = TimeSpan.FromSeconds(30);
     }
+
+    /// <summary>
+    /// 是否开启空值缓存（防止缓存穿透）
+    /// <para>默认关闭。</para>
+    /// </summary>
+    public bool CacheNullValues { get; set; } = false;
+
+    /// <summary>
+    /// 空值缓存的过期时间
+    /// <para>建议设置较短的时间（如 30秒），防止数据不一致。</para>
+    /// </summary>
+    public TimeSpan NullValueExpiry { get; set; } = TimeSpan.FromSeconds(30);
 }

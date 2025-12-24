@@ -63,7 +63,7 @@ public class CacheRefreshBackgroundService<TKey, TValue> : BackgroundService whe
         using var scope = _serviceProvider.CreateScope();
         var cacheService = scope.ServiceProvider.GetService<ICacheService<TKey, TValue>>();
 
-        if (cacheService is L2CacheService<TKey, TValue> l2Cache)
+        if (cacheService is ICacheRefreshable<TKey> refreshableCache)
         {
             foreach (var key in keys)
             {
@@ -71,7 +71,7 @@ public class CacheRefreshBackgroundService<TKey, TValue> : BackgroundService whe
 
                 try
                 {
-                    await l2Cache.RefreshKeyAsync(key); 
+                    await refreshableCache.RefreshKeyAsync(key); 
                 }
                 catch (Exception ex)
                 {

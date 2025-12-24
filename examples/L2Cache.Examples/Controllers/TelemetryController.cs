@@ -37,12 +37,31 @@ public class TelemetryController : ControllerBase
     [HttpGet("health/history")]
     public IActionResult GetHealthHistory()
     {
-        // 注意：这里假设 IHealthChecker 有公开历史记录的方法，如果没有，可能需要依赖注入具体的实现类或扩展接口
-        // DefaultHealthChecker 确实有 _healthHistory 但没有公开接口方法。
-        // 我们先只返回当前状态。
-        // 实际上，DefaultHealthChecker 没有公开获取历史的方法，我们可能需要扩展它或者只是展示 CheckHealthAsync 的结果。
-        // 这里暂时先只做 CheckHealthAsync。
-        return Ok("History API not implemented in interface");
+        var history = _healthChecker.GetHealthHistory();
+        return Ok(history);
+    }
+
+    /// <summary>
+    /// 模拟系统故障（演示目的）
+    /// <para>添加一个总是失败的健康检查项</para>
+    /// </summary>
+    [HttpPost("health/simulate-failure")]
+    public IActionResult SimulateFailure()
+    {
+        _healthChecker.AddHealthCheck("simulated_failure", ct => 
+            Task.FromResult(new HealthCheckItemResult(HealthStatus.Unhealthy, "Simulated critical failure for testing")));
+            
+        return Ok("Simulated failure injected. System status should now be Unhealthy.");
+    }
+
+    /// <summary>
+    /// 清除模拟故障
+    /// </summary>
+    [HttpPost("health/clear-simulation")]
+    public IActionResult ClearSimulation()
+    {
+        var removed = _healthChecker.RemoveHealthCheck("simulated_failure");
+        return Ok(removed ? "Simulated failure removed." : "No simulated failure found.");
     }
 
     /// <summary>
