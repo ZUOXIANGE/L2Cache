@@ -5,19 +5,8 @@ namespace L2Cache.Logging;
 /// <summary>
 /// 缓存日志扩展方法，提供结构化的日志记录
 /// </summary>
-public static class CacheLoggerExtensions
+public static partial class CacheLoggerExtensions
 {
-    // 定义日志事件ID
-    private static readonly EventId CacheHitEventId = new EventId(1001, "CacheHit");
-    private static readonly EventId CacheMissEventId = new EventId(1002, "CacheMiss");
-    private static readonly EventId CacheSetEventId = new EventId(1003, "CacheSet");
-    private static readonly EventId CacheEvictEventId = new EventId(1004, "CacheEvict");
-    private static readonly EventId CacheErrorEventId = new EventId(1005, "CacheError");
-    private static readonly EventId DataSourceLoadEventId = new EventId(1006, "DataSourceLoad");
-    private static readonly EventId BatchOperationEventId = new EventId(1007, "BatchOperation");
-    private static readonly EventId CacheReloadEventId = new EventId(1008, "CacheReload");
-    private static readonly EventId CacheClearEventId = new EventId(1009, "CacheClear");
-
     /// <summary>
     /// 记录缓存命中日志
     /// </summary>
@@ -28,10 +17,11 @@ public static class CacheLoggerExtensions
     /// <param name="responseTime">响应时间</param>
     public static void LogCacheHit(this ILogger logger, string cacheName, string cacheLevel, string key, TimeSpan responseTime)
     {
-        logger.LogDebug(CacheHitEventId,
-            "Cache hit: {CacheName} [{CacheLevel}] Key: {Key}, ResponseTime: {ResponseTime}ms",
-            cacheName, cacheLevel, key, responseTime.TotalMilliseconds);
+        LogCacheHitInternal(logger, cacheName, cacheLevel, key, responseTime.TotalMilliseconds);
     }
+
+    [LoggerMessage(EventId = 1001, Level = LogLevel.Debug, Message = "Cache hit: {cacheName} [{cacheLevel}] Key: {key}, ResponseTime: {responseTimeMs}ms")]
+    private static partial void LogCacheHitInternal(this ILogger logger, string cacheName, string cacheLevel, string key, double responseTimeMs);
 
     /// <summary>
     /// 记录缓存未命中日志
@@ -43,10 +33,11 @@ public static class CacheLoggerExtensions
     /// <param name="responseTime">响应时间</param>
     public static void LogCacheMiss(this ILogger logger, string cacheName, string cacheLevel, string key, TimeSpan responseTime)
     {
-        logger.LogDebug(CacheMissEventId,
-            "Cache miss: {CacheName} [{CacheLevel}] Key: {Key}, ResponseTime: {ResponseTime}ms",
-            cacheName, cacheLevel, key, responseTime.TotalMilliseconds);
+        LogCacheMissInternal(logger, cacheName, cacheLevel, key, responseTime.TotalMilliseconds);
     }
+
+    [LoggerMessage(EventId = 1002, Level = LogLevel.Debug, Message = "Cache miss: {cacheName} [{cacheLevel}] Key: {key}, ResponseTime: {responseTimeMs}ms")]
+    private static partial void LogCacheMissInternal(this ILogger logger, string cacheName, string cacheLevel, string key, double responseTimeMs);
 
     /// <summary>
     /// 记录缓存设置日志
@@ -58,13 +49,14 @@ public static class CacheLoggerExtensions
     /// <param name="responseTime">响应时间</param>
     /// <param name="expiry">过期时间</param>
     /// <param name="dataSize">数据大小</param>
-    public static void LogCacheSet(this ILogger logger, string cacheName, string cacheLevel, string key, 
+    public static void LogCacheSet(this ILogger logger, string cacheName, string cacheLevel, string key,
         TimeSpan responseTime, TimeSpan? expiry = null, long dataSize = 0)
     {
-        logger.LogDebug(CacheSetEventId,
-            "Cache set: {CacheName} [{CacheLevel}] Key: {Key}, ResponseTime: {ResponseTime}ms, Expiry: {Expiry}, DataSize: {DataSize}",
-            cacheName, cacheLevel, key, responseTime.TotalMilliseconds, expiry?.ToString() ?? "None", dataSize);
+        LogCacheSetInternal(logger, cacheName, cacheLevel, key, responseTime.TotalMilliseconds, expiry?.ToString() ?? "None", dataSize);
     }
+
+    [LoggerMessage(EventId = 1003, Level = LogLevel.Debug, Message = "Cache set: {cacheName} [{cacheLevel}] Key: {key}, ResponseTime: {responseTimeMs}ms, Expiry: {expiryStr}, DataSize: {dataSize}")]
+    private static partial void LogCacheSetInternal(this ILogger logger, string cacheName, string cacheLevel, string key, double responseTimeMs, string expiryStr, long dataSize);
 
     /// <summary>
     /// 记录缓存删除日志
@@ -76,10 +68,11 @@ public static class CacheLoggerExtensions
     /// <param name="responseTime">响应时间</param>
     public static void LogCacheEvict(this ILogger logger, string cacheName, string cacheLevel, string key, TimeSpan responseTime)
     {
-        logger.LogDebug(CacheEvictEventId,
-            "Cache evict: {CacheName} [{CacheLevel}] Key: {Key}, ResponseTime: {ResponseTime}ms",
-            cacheName, cacheLevel, key, responseTime.TotalMilliseconds);
+        LogCacheEvictInternal(logger, cacheName, cacheLevel, key, responseTime.TotalMilliseconds);
     }
+
+    [LoggerMessage(EventId = 1004, Level = LogLevel.Debug, Message = "Cache evict: {cacheName} [{cacheLevel}] Key: {key}, ResponseTime: {responseTimeMs}ms")]
+    private static partial void LogCacheEvictInternal(this ILogger logger, string cacheName, string cacheLevel, string key, double responseTimeMs);
 
     /// <summary>
     /// 记录缓存重新加载日志
@@ -91,10 +84,11 @@ public static class CacheLoggerExtensions
     /// <param name="expiry">过期时间</param>
     public static void LogCacheReload(this ILogger logger, string cacheName, string key, TimeSpan responseTime, TimeSpan? expiry = null)
     {
-        logger.LogInformation(CacheReloadEventId,
-            "Cache reload: {CacheName} Key: {Key}, ResponseTime: {ResponseTime}ms, Expiry: {Expiry}",
-            cacheName, key, responseTime.TotalMilliseconds, expiry?.ToString() ?? "None");
+        LogCacheReloadInternal(logger, cacheName, key, responseTime.TotalMilliseconds, expiry?.ToString() ?? "None");
     }
+
+    [LoggerMessage(EventId = 1008, Level = LogLevel.Information, Message = "Cache reload: {cacheName} Key: {key}, ResponseTime: {responseTimeMs}ms, Expiry: {expiryStr}")]
+    private static partial void LogCacheReloadInternal(this ILogger logger, string cacheName, string key, double responseTimeMs, string expiryStr);
 
     /// <summary>
     /// 记录缓存清空日志
@@ -104,10 +98,11 @@ public static class CacheLoggerExtensions
     /// <param name="responseTime">响应时间</param>
     public static void LogCacheClear(this ILogger logger, string cacheName, TimeSpan responseTime)
     {
-        logger.LogDebug(CacheClearEventId,
-            "Cache clear: {CacheName}, ResponseTime: {ResponseTime}ms",
-            cacheName, responseTime.TotalMilliseconds);
+        LogCacheClearInternal(logger, cacheName, responseTime.TotalMilliseconds);
     }
+
+    [LoggerMessage(EventId = 1009, Level = LogLevel.Debug, Message = "Cache clear: {cacheName}, ResponseTime: {responseTimeMs}ms")]
+    private static partial void LogCacheClearInternal(this ILogger logger, string cacheName, double responseTimeMs);
 
     /// <summary>
     /// 记录数据源加载日志
@@ -118,22 +113,24 @@ public static class CacheLoggerExtensions
     /// <param name="responseTime">响应时间</param>
     /// <param name="success">是否成功</param>
     /// <param name="dataSize">数据大小</param>
-    public static void LogDataSourceLoad(this ILogger logger, string cacheName, string key, TimeSpan responseTime, 
+    public static void LogDataSourceLoad(this ILogger logger, string cacheName, string key, TimeSpan responseTime,
         bool success, long dataSize = 0)
     {
         if (success)
         {
-            logger.LogDebug(DataSourceLoadEventId,
-                "Data source load success: {CacheName} Key: {Key}, ResponseTime: {ResponseTime}ms, DataSize: {DataSize}",
-                cacheName, key, responseTime.TotalMilliseconds, dataSize);
+            LogDataSourceLoadSuccessInternal(logger, cacheName, key, responseTime.TotalMilliseconds, dataSize);
         }
         else
         {
-            logger.LogWarning(DataSourceLoadEventId,
-                "Data source load failed: {CacheName} Key: {Key}, ResponseTime: {ResponseTime}ms",
-                cacheName, key, responseTime.TotalMilliseconds);
+            LogDataSourceLoadFailedInternal(logger, cacheName, key, responseTime.TotalMilliseconds);
         }
     }
+
+    [LoggerMessage(EventId = 1006, Level = LogLevel.Debug, Message = "Data source load success: {cacheName} Key: {key}, ResponseTime: {responseTimeMs}ms, DataSize: {dataSize}")]
+    private static partial void LogDataSourceLoadSuccessInternal(this ILogger logger, string cacheName, string key, double responseTimeMs, long dataSize);
+
+    [LoggerMessage(EventId = 1010, Level = LogLevel.Warning, Message = "Data source load failed: {cacheName} Key: {key}, ResponseTime: {responseTimeMs}ms")]
+    private static partial void LogDataSourceLoadFailedInternal(this ILogger logger, string cacheName, string key, double responseTimeMs);
 
     /// <summary>
     /// 记录批量操作日志
@@ -144,13 +141,14 @@ public static class CacheLoggerExtensions
     /// <param name="keyCount">键数量</param>
     /// <param name="successCount">成功数量</param>
     /// <param name="responseTime">响应时间</param>
-    public static void LogBatchOperation(this ILogger logger, string cacheName, string operation, 
+    public static void LogBatchOperation(this ILogger logger, string cacheName, string operation,
         int keyCount, int successCount, TimeSpan responseTime)
     {
-        logger.LogDebug(BatchOperationEventId,
-            "Batch operation: {CacheName} Operation: {Operation}, KeyCount: {KeyCount}, SuccessCount: {SuccessCount}, ResponseTime: {ResponseTime}ms",
-            cacheName, operation, keyCount, successCount, responseTime.TotalMilliseconds);
+        LogBatchOperationInternal(logger, cacheName, operation, keyCount, successCount, responseTime.TotalMilliseconds);
     }
+
+    [LoggerMessage(EventId = 1007, Level = LogLevel.Debug, Message = "Batch operation: {cacheName} Operation: {operation}, KeyCount: {keyCount}, SuccessCount: {successCount}, ResponseTime: {responseTimeMs}ms")]
+    private static partial void LogBatchOperationInternal(this ILogger logger, string cacheName, string operation, int keyCount, int successCount, double responseTimeMs);
 
     /// <summary>
     /// 记录缓存错误日志
@@ -161,13 +159,14 @@ public static class CacheLoggerExtensions
     /// <param name="key">缓存键</param>
     /// <param name="exception">异常信息</param>
     /// <param name="responseTime">响应时间</param>
-    public static void LogCacheError(this ILogger logger, string cacheName, string operation, string key, 
+    public static void LogCacheError(this ILogger logger, string cacheName, string operation, string key,
         Exception exception, TimeSpan responseTime)
     {
-        logger.LogError(CacheErrorEventId, exception,
-            "Cache error: {CacheName} Operation: {Operation}, Key: {Key}, ResponseTime: {ResponseTime}ms, Error: {ErrorMessage}",
-            cacheName, operation, key, responseTime.TotalMilliseconds, exception.Message);
+        LogCacheErrorInternal(logger, exception, cacheName, operation, key, responseTime.TotalMilliseconds, exception.Message);
     }
+
+    [LoggerMessage(EventId = 1005, Level = LogLevel.Error, Message = "Cache error: {cacheName} Operation: {operation}, Key: {key}, ResponseTime: {responseTimeMs}ms, Error: {errorMessage}")]
+    private static partial void LogCacheErrorInternal(this ILogger logger, Exception exception, string cacheName, string operation, string key, double responseTimeMs, string errorMessage);
 
     /// <summary>
     /// 记录缓存健康检查日志
@@ -177,18 +176,22 @@ public static class CacheLoggerExtensions
     /// <param name="isHealthy">是否健康</param>
     /// <param name="responseTime">响应时间</param>
     /// <param name="details">详细信息</param>
-    public static void LogCacheHealthCheck(this ILogger logger, string cacheName, bool isHealthy, 
+    public static void LogCacheHealthCheck(this ILogger logger, string cacheName, bool isHealthy,
         TimeSpan responseTime, string? details = null)
     {
         if (isHealthy)
         {
-            logger.LogDebug("Cache health check passed: {CacheName}, ResponseTime: {ResponseTime}ms, Details: {Details}",
-                cacheName, responseTime.TotalMilliseconds, details ?? "OK");
+            LogCacheHealthCheckPassedInternal(logger, cacheName, responseTime.TotalMilliseconds, details ?? "OK");
         }
         else
         {
-            logger.LogWarning("Cache health check failed: {CacheName}, ResponseTime: {ResponseTime}ms, Details: {Details}",
-                cacheName, responseTime.TotalMilliseconds, details ?? "Unknown error");
+            LogCacheHealthCheckFailedInternal(logger, cacheName, responseTime.TotalMilliseconds, details ?? "Unknown error");
         }
     }
+
+    [LoggerMessage(EventId = 1011, Level = LogLevel.Debug, Message = "Cache health check passed: {cacheName}, ResponseTime: {responseTimeMs}ms, Details: {details}")]
+    private static partial void LogCacheHealthCheckPassedInternal(this ILogger logger, string cacheName, double responseTimeMs, string details);
+
+    [LoggerMessage(EventId = 1012, Level = LogLevel.Warning, Message = "Cache health check failed: {cacheName}, ResponseTime: {responseTimeMs}ms, Details: {details}")]
+    private static partial void LogCacheHealthCheckFailedInternal(this ILogger logger, string cacheName, double responseTimeMs, string details);
 }
