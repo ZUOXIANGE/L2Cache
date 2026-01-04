@@ -391,6 +391,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                         // 如果获取失败，说明有其他节点正在加载，我们可以选择等待或者直接回源（这里选择等待重试）
                         // 为了简化，这里使用简单的自旋等待
                         var lockTimeout = Stopwatch.GetTimestamp();
+                        var retryDelay = 20;
                         while (true)
                         {
                             if (await database.LockTakeAsync(lockKey, lockValue, options.Lock.DistributedLockExpiry))
@@ -401,16 +402,17 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
 
                             if (Stopwatch.GetElapsedTime(lockTimeout) > options.Lock.LockTimeout)
                             {
-                                logger?.LogWarning($"Failed to acquire distributed lock for key {cacheKey} after {options.Lock.LockTimeout.TotalSeconds}s");
+                                logger?.LogWarning("Failed to acquire distributed lock for key {CacheKey} after {Timeout}s", cacheKey, options.Lock.LockTimeout.TotalSeconds);
                                 break; // 降级为直接回源
                             }
 
-                            await Task.Delay(50); // 简单的等待
+                            await Task.Delay(retryDelay);
+                            retryDelay = Math.Min(retryDelay * 2, 200); // Max 200ms
                         }
                     }
                     catch (Exception ex)
                     {
-                        logger?.LogWarning(ex, $"Error acquiring distributed lock for key {cacheKey}");
+                        logger?.LogWarning(ex, "Error acquiring distributed lock for key {CacheKey}", cacheKey);
                         // 降级：继续执行回源
                     }
                 }
@@ -548,7 +550,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             }
             catch (TimeoutException)
             {
-                logger?.LogWarning($"Failed to acquire memory lock for PutAsync key: {cacheKey}");
+                logger?.LogWarning("Failed to acquire memory lock for PutAsync key: {CacheKey}", cacheKey);
                 // 继续尝试写入，或者抛出异常？为了可用性，我们选择继续写入，但可能会有竞争。
                 // 或者直接抛出？视业务需求而定。这里选择记录警告并继续。
             }
@@ -573,13 +575,13 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                     }
                     else
                     {
-                        logger?.LogWarning($"Failed to acquire distributed lock for PutAsync key: {cacheKey}");
+                        logger?.LogWarning("Failed to acquire distributed lock for PutAsync key: {CacheKey}", cacheKey);
                         // 同样，获取失败也继续尝试写入
                     }
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogWarning(ex, $"Error acquiring distributed lock for PutAsync key {cacheKey}");
+                    logger?.LogWarning(ex, "Error acquiring distributed lock for PutAsync key {CacheKey}", cacheKey);
                 }
             }
 
@@ -963,24 +965,29 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
         // 3. 批量回源加载
         var loadedData = await QueryDataListAsync(missingKeys);
         // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-        if (loadedData != null)
+        if (loadedData != null && loadedData.Count > 0)
         {
             foreach (var kvp in loadedData)
             {
                 result[kvp.Key] = kvp.Value;
-
-                // 4. 回填缓存
-                await BackfillCacheAsync(kvp.Key, kvp.Value, expiry);
             }
+            
+            // 4. 批量回填缓存 (优化：使用 Pipeline 替代循环锁)
+            await BatchPutInternalAsync(loadedData, expiry, When.NotExists);
         }
 
         // 5. Handle Null Value Caching
         if (GetOptions().CacheNullValues)
         {
             var nullKeys = missingKeys.Where(k => !result.ContainsKey(k)).ToList();
-            foreach (var key in nullKeys)
+            if (nullKeys.Count > 0)
             {
-                await BackfillCacheAsync(key, default!, GetOptions().NullValueExpiry);
+                var nullData = new Dictionary<TKey, TValue>();
+                foreach (var key in nullKeys)
+                {
+                    nullData[key] = default!;
+                }
+                await BatchPutInternalAsync(nullData, GetOptions().NullValueExpiry, When.NotExists);
             }
         }
 
@@ -988,75 +995,138 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
     }
 
     /// <summary>
-    /// 回填缓存（带锁）。
+    /// 批量设置缓存项。
+    /// <para>无论缓存是否存在，都会覆盖原有值。使用 Pipeline 优化写入性能。</para>
     /// </summary>
-    private async Task BackfillCacheAsync(TKey key, TValue value, TimeSpan? expiry)
+    /// <param name="data">包含 Key 和 Value 的字典。</param>
+    /// <param name="expiry">缓存过期时间。如果为 null，则使用默认配置。</param>
+    /// <returns>表示异步操作的任务。</returns>
+    public virtual async Task BatchPutAsync(Dictionary<TKey, TValue> data, TimeSpan? expiry = null)
     {
-        var options = GetOptions();
-        var cacheKey = BuildCacheKey(key);
+        await BatchPutInternalAsync(data, expiry, When.Always);
+    }
 
-        // 1. Memory Lock
-        IDisposable? memoryLock = null;
-        if (options.Lock.EnabledMemoryLock)
+    /// <summary>
+    /// 批量回填缓存（优化版，使用 Pipeline 和 MSET/SETNX）。
+    /// </summary>
+    private async Task BatchPutInternalAsync(Dictionary<TKey, TValue> data, TimeSpan? expiry, When when)
+    {
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+        if (data == null || data.Count == 0) return;
+
+        var options = GetOptions();
+        var database = GetRedisDatabase();
+        var serializer = GetCacheSerializer();
+        var localCache = GetLocalCache();
+
+        // 1. Redis Pipeline Update
+        var successKeys = new HashSet<TKey>();
+        if (database != null)
         {
-            try
+            var batch = database.CreateBatch();
+            var tasks = new List<(TKey Key, Task<bool> Task)>();
+
+            foreach (var kvp in data)
             {
-                memoryLock = await _memoryLocker.LockAsync(key, options.Lock.LockTimeout);
+                var fullKey = GetFullKey(kvp.Key);
+                string serializedValue;
+                TimeSpan? itemExpiry = expiry;
+
+                if (kvp.Value is null)
+                {
+                    serializedValue = NullValString;
+                    itemExpiry ??= options.NullValueExpiry;
+                }
+                else
+                {
+                    serializedValue = serializer.SerializeToString(kvp.Value);
+                }
+
+                Task<bool> task;
+                if (itemExpiry.HasValue)
+                {
+                    task = batch.StringSetAsync(fullKey, serializedValue, itemExpiry.Value, when);
+                }
+                else
+                {
+                    task = batch.StringSetAsync(fullKey, serializedValue, null, when);
+                }
+                tasks.Add((kvp.Key, task));
             }
-            catch (TimeoutException)
+
+            batch.Execute();
+            await Task.WhenAll(tasks.Select(t => t.Task));
+
+            foreach (var item in tasks)
             {
-                GetLogger()?.LogWarning($"Failed to acquire memory lock for Backfill key: {cacheKey}");
+                if (item.Task.Result)
+                {
+                    successKeys.Add(item.Key);
+                }
             }
         }
-
-        try
+        else
         {
-            // 2. Distributed Lock
-            var database = GetRedisDatabase();
-            var lockKey = $"lock:{GetFullKey(cacheKey)}";
-            var lockValue = Guid.NewGuid().ToString();
-            var hasDistributedLock = false;
+            // If Redis is not used, we assume we should update local cache
+            foreach (var key in data.Keys) successKeys.Add(key);
+        }
 
-            if (options.Lock.EnabledDistributedLock && database != null)
+        // 2. Local Cache Update
+        if (localCache != null)
+        {
+            foreach (var kvp in data)
             {
-                try
+                // Only update L1 if Redis Set succeeded (meaning no concurrent update happened on Redis)
+                if (database != null && !successKeys.Contains(kvp.Key))
                 {
-                    if (await database.LockTakeAsync(lockKey, lockValue, options.Lock.DistributedLockExpiry))
+                    continue;
+                }
+
+                // Try to acquire memory lock with 0 timeout to avoid race with PutAsync
+                // If we can't get lock, it means PutAsync is writing, so we skip to let PutAsync win.
+                if (options.Lock.EnabledMemoryLock)
+                {
+                    try
                     {
-                        hasDistributedLock = true;
+                        using var memoryLock = await _memoryLocker.LockAsync(kvp.Key, TimeSpan.Zero);
+                        SetLocalCache(kvp.Key, kvp.Value, expiry);
+                    }
+                    catch (TimeoutException)
+                    {
+                        // Failed to acquire lock, skip L1 update
+                        GetLogger()?.LogDebug("Skipped L1 update for {Key} due to lock contention.", kvp.Key);
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    GetLogger()?.LogWarning(ex, $"Error acquiring distributed lock for Backfill key {cacheKey}");
+                    SetLocalCache(kvp.Key, kvp.Value, expiry);
                 }
             }
-
-            try
-            {
-                // 3. Double Check
-                // 如果缓存中已经存在值（被并发写入），则放弃回填（认为 DB 数据可能陈旧）
-                var exists = await ExistsAsync(key);
-                if (!exists)
-                {
-                    await InternalPutAsync(key, value, expiry);
-                }
-            }
-            finally
-            {
-                // Release Distributed Lock
-                if (hasDistributedLock && database != null)
-                {
-                    await database.LockReleaseAsync(lockKey, lockValue);
-                }
-            }
-        }
-        finally
-        {
-            // Release Memory Lock
-            memoryLock?.Dispose();
         }
     }
+
+    private void SetLocalCache(TKey key, TValue value, TimeSpan? expiry)
+    {
+        var localCache = GetLocalCache();
+        if (localCache == null) return;
+
+        var fullKey = GetFullKey(key);
+        var options = GetOptions();
+        TimeSpan? itemExpiry = expiry;
+        if (value is null) itemExpiry ??= options.NullValueExpiry;
+
+        var cacheEntryOptions = CreateLocalCacheEntryOptions(key, itemExpiry);
+        object localValue = (object?)value ?? NullValObj;
+
+        localCache.Set(fullKey, localValue, cacheEntryOptions);
+
+        if (value != null)
+        {
+            OnLocalCacheSet(key, value);
+        }
+    }
+
+
 
     /// <summary>
     /// 批量淘汰（移除）缓存项。

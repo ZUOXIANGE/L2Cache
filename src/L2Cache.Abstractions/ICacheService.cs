@@ -115,6 +115,15 @@ public interface ICacheService<TKey, TValue> where TKey : notnull
     Task<Dictionary<TKey, TValue>> BatchGetOrLoadAsync(List<TKey> keyList, TimeSpan? expiry = null);
 
     /// <summary>
+    /// 批量设置缓存项。
+    /// <para>无论缓存是否存在，都会覆盖原有值。使用 Pipeline 优化写入性能。</para>
+    /// </summary>
+    /// <param name="data">包含 Key 和 Value 的字典。</param>
+    /// <param name="expiry">缓存过期时间。如果为 null，则使用默认配置。</param>
+    /// <returns>表示异步操作的任务。</returns>
+    Task BatchPutAsync(Dictionary<TKey, TValue> data, TimeSpan? expiry = null);
+
+    /// <summary>
     /// 批量淘汰（移除）缓存项。
     /// </summary>
     /// <param name="keyList">业务 Key 列表。</param>
