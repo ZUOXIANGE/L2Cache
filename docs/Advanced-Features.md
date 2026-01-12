@@ -58,5 +58,59 @@ L2Cache 遵循 **Cache Aside** 模式，并提供以下机制保障一致性：
 -   **更新策略**: `PutAsync` 会同时更新 L1 和 L2。
 -   **淘汰策略**: `EvictAsync` 会同时删除 L1 和 L2。
 -   **自动过期**: 支持 TTL (Time To Live)。
--   **被动更新**: 依赖 Redis Pub/Sub（未来规划）或被动过期来同步多级缓存。
+-   **被动更新**: 可通过扩展 `OnRedisCacheSet` 结合 Redis Pub/Sub 实现多级缓存同步（参见 [4.2 OnRedisCacheSet](#42-onrediscacheset)），或依赖被动过期。
 -   **强制刷新**: `ReloadAsync` 强制回源并更新缓存。
+
+## 4. 扩展点与回调 (Hooks)
+
+L2Cache 提供了受保护的虚方法（Hooks），允许开发者在缓存写入时注入自定义逻辑。您可以通过继承 `L2CacheService<TKey, TValue>` 并重写这些方法来实现。
+
+### 4.1 OnLocalCacheSet
+
+当数据被写入本地缓存（L1）时触发。
+
+- **签名**: `protected virtual void OnLocalCacheSet(TKey key, TValue value)`
+- **触发时机**: `PutAsync`、`GetOrLoadAsync` (回填 L1)、`BatchGetOrLoadAsync` (回填 L1) 等所有写入 L1 的操作。
+- **典型用途**:
+    -   **后台刷新**: L2Cache 默认实现利用此钩子将 Key 加入 `CacheKeyTracker`，以支持后台自动刷新。
+    -   **辅助索引**: 维护一个本地的 Key 集合，用于模糊查询或批量管理。
+    -   **本地监控**: 记录本地缓存的变更频率。
+
+**示例代码**:
+
+```csharp
+public class MyCustomCacheService : L2CacheService<string, User>
+{
+    // 构造函数省略...
+
+    protected override void OnLocalCacheSet(string key, User value)
+    {
+        base.OnLocalCacheSet(key, value); // 重要：保留默认的后台刷新逻辑
+        
+        // 自定义逻辑
+        Console.WriteLine($"[L1 Hook] Key {key} updated in local cache.");
+    }
+}
+```
+
+### 4.2 OnRedisCacheSet
+
+当数据被写入 Redis 缓存（L2）时触发。
+
+- **签名**: `protected virtual void OnRedisCacheSet(TKey key, TValue value, TimeSpan? expiry)`
+- **触发时机**: `PutAsync` 写入 Redis 成功后。
+- **典型用途**:
+    -   **缓存同步**: 发送 Redis Pub/Sub 消息，通知其他节点清除该 Key 的本地缓存（实现即时一致性）。
+    -   **审计日志**: 记录关键数据的变更历史。
+    -   **二级索引**: 在 Redis 中更新该数据对应的索引（如 Set 或 ZSet）。
+
+**示例代码**:
+
+```csharp
+protected override void OnRedisCacheSet(string key, User value, TimeSpan? expiry)
+{
+    // 自定义逻辑：发送变更通知
+    var database = GetRedisDatabase();
+    database?.PublishAsync("cache-invalidation-channel", key);
+}
+```
