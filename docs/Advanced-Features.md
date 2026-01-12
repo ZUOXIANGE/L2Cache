@@ -23,6 +23,10 @@ L2Cache 采用了 **Double-Checked Locking (双重检查锁)** 模式：
     -   **性能**: 极高，无网络开销。
     -   **局限**: 无法限制多实例/多节点间的并发。
 
+-   **线程同步锁 (Thread Sync Lock)**: 使用 .NET 9+ 引入的 `System.Threading.Lock` 实现。
+    -   **作用**: 保护内部临界区（如 Pub/Sub 订阅初始化、统计信息更新）的线程安全。
+    -   **优势**: 相比传统的 `lock(object)`，具有更低的开销和更好的性能（无对象头开销）。
+
 -   **分布式锁 (Distributed Lock)**: 使用 Redis `SET NX` 实现。
     -   **作用**: 限制整个集群内只有一个实例能去加载同一个 Key。
     -   **性能**: 依赖 Redis 网络往返，略低于内存锁。
@@ -58,7 +62,10 @@ L2Cache 遵循 **Cache Aside** 模式，并提供以下机制保障一致性：
 -   **更新策略**: `PutAsync` 会同时更新 L1 和 L2。
 -   **淘汰策略**: `EvictAsync` 会同时删除 L1 和 L2。
 -   **自动过期**: 支持 TTL (Time To Live)。
--   **被动更新**: 可通过扩展 `OnRedisCacheSet` 结合 Redis Pub/Sub 实现多级缓存同步（参见 [4.2 OnRedisCacheSet](#42-onrediscacheset)），或依赖被动过期。
+-   **被动更新**: 默认内置了基于 Redis Pub/Sub 的多级缓存同步机制。当 L2 缓存更新时，会自动通知其他节点清除对应的本地 L1 缓存（需在配置中启用 `PubSub`）。
+-   **定时刷新**: 提供基于后台任务的自动刷新机制（需启用 `BackgroundRefresh` 并调用 `AddL2CacheRefresh`）。
+    -   **机制**: 系统会自动跟踪活跃的本地缓存 Key，并根据配置的策略定期从 Redis 或数据库重新加载数据，确保本地缓存不过期且数据尽可能新鲜。
+    -   **扩展**: 支持自定义 `ICacheRefreshPolicy` 来控制不同 Key 的刷新频率。
 -   **强制刷新**: `ReloadAsync` 强制回源并更新缓存。
 
 ## 4. 扩展点与回调 (Hooks)
@@ -99,18 +106,22 @@ public class MyCustomCacheService : L2CacheService<string, User>
 
 - **签名**: `protected virtual void OnRedisCacheSet(TKey key, TValue value, TimeSpan? expiry)`
 - **触发时机**: `PutAsync` 写入 Redis 成功后。
-- **典型用途**:
-    -   **缓存同步**: 发送 Redis Pub/Sub 消息，通知其他节点清除该 Key 的本地缓存（实现即时一致性）。
+- **默认行为**:
+    -   如果配置中启用了 `PubSub.Enabled = true`，默认实现会自动向 Redis 频道（`{ChannelPrefix}:{CacheName}`）发送缓存失效消息，以通知其他节点清除本地缓存。
+- **扩展用途**:
     -   **审计日志**: 记录关键数据的变更历史。
     -   **二级索引**: 在 Redis 中更新该数据对应的索引（如 Set 或 ZSet）。
+
+**注意**: 如果重写此方法，建议调用 `base.OnRedisCacheSet(...)` 以保留默认的 Pub/Sub 通知功能，除非您想完全替换它。
 
 **示例代码**:
 
 ```csharp
 protected override void OnRedisCacheSet(string key, User value, TimeSpan? expiry)
 {
-    // 自定义逻辑：发送变更通知
-    var database = GetRedisDatabase();
-    database?.PublishAsync("cache-invalidation-channel", key);
+    base.OnRedisCacheSet(key, value, expiry); // 保留默认的 Pub/Sub 通知
+
+    // 自定义逻辑：记录审计日志
+    _logger.LogInformation("Key {Key} updated in Redis", key);
 }
 ```

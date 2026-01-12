@@ -699,7 +699,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
 
     private class CacheStatisticsInternal
     {
-        public object LockObject { get; } = new object();
+        public Lock LockObject { get; } = new();
         public string CacheName { get; set; } = string.Empty;
         public long L1HitCount { get; set; }
         public long L1MissCount { get; set; }

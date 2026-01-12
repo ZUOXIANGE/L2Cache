@@ -1,0 +1,103 @@
+using System.Reflection;
+using L2Cache.Abstractions;
+using L2Cache.Configuration;
+using L2Cache.Tests.Functional.Fixtures;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using FluentAssertions;
+using Xunit;
+
+namespace L2Cache.Tests.Functional.Core.Integration;
+
+[Collection("Shared Test Collection")]
+public class PubSubCacheSyncTests : IClassFixture<RedisTestFixture>
+{
+    private readonly RedisTestFixture _redisFixture;
+
+    public PubSubCacheSyncTests(RedisTestFixture redisFixture)
+    {
+        _redisFixture = redisFixture;
+    }
+
+    [Fact]
+    public async Task PutAsync_OnNodeA_ShouldInvalidateL1_OnNodeB()
+    {
+        // Reset the static flag to ensure Node A and Node B both subscribe
+        // This is necessary because they run in the same process/AppDomain in this test,
+        // but we want to simulate them as separate nodes (each having its own subscription).
+        ResetSubscriptionFlag();
+
+        // Arrange
+        var key = "sync-key-" + Guid.NewGuid();
+        var value1 = "value-1";
+        var value2 = "value-2";
+
+        // Setup Node A
+        var servicesA = CreateServiceProvider("NodeA");
+        var cacheA = servicesA.GetRequiredService<ICacheService<string, string>>();
+
+        // Reset again so Node B also subscribes (simulating a second process)
+        ResetSubscriptionFlag();
+
+        // Setup Node B
+        var servicesB = CreateServiceProvider("NodeB");
+        var cacheB = servicesB.GetRequiredService<ICacheService<string, string>>();
+
+        // 1. Node A writes initial value
+        await cacheA.PutAsync(key, value1);
+
+        // 2. Node B reads (populates its L1)
+        var valB1 = await cacheB.GetAsync(key);
+        valB1.Should().Be(value1);
+
+        // 3. Node A updates value (should trigger Pub -> Node B Sub -> Invalidate L1)
+        await cacheA.PutAsync(key, value2);
+
+        // 4. Wait for Pub/Sub propagation
+        await Task.Delay(1000); 
+
+        // 5. Node B reads again
+        var valB2 = await cacheB.GetAsync(key);
+
+        // Assert
+        valB2.Should().Be(value2, "Node B should have fetched the new value from L2 after L1 invalidation");
+    }
+
+    private void ResetSubscriptionFlag()
+    {
+        var type = typeof(L2CacheService<string, string>);
+        var field = type.GetField("_isSubscribed", BindingFlags.Static | BindingFlags.NonPublic);
+        if (field != null)
+        {
+            field.SetValue(null, false);
+        }
+    }
+
+    private IServiceProvider CreateServiceProvider(string nodeName)
+    {
+        var services = new ServiceCollection();
+        
+        // Logging
+        services.AddLogging(builder => builder.AddConsole());
+
+        // L2Cache
+        services.AddL2Cache(options =>
+        {
+            options.UseLocalCache = true;
+            options.UseRedis = true;
+            options.Redis.ConnectionString = _redisFixture.ConnectionString;
+            
+            // Enable Pub/Sub
+            options.PubSub.Enabled = true;
+            options.PubSub.ChannelPrefix = "test-sync";
+        });
+
+        // Ensure distinct IMemoryCache for each "Node"
+        // AddL2Cache adds MemoryCache, but since we are creating a new ServiceCollection 
+        // and building a new ServiceProvider for each node, they will naturally be distinct.
+
+        return services.BuildServiceProvider();
+    }
+}

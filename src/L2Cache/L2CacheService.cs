@@ -32,6 +32,10 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
     private readonly CacheKeyTracker<TKey, TValue>? _keyTracker;
     private readonly ICacheRefreshPolicy<TKey, TValue>? _refreshPolicy;
 
+    private readonly ISubscriber? _subscriber;
+    private static volatile bool _isSubscribed;
+    private static readonly Lock _subscriptionLock = new();
+
     #region Constructor
 
     /// <summary>
@@ -49,10 +53,10 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
         _logger = logger;
         _serializer = serializer ?? new JsonCacheSerializer();
         _telemetryProvider = serviceProvider.GetService(typeof(ITelemetryProvider)) as ITelemetryProvider;
-        
+
         // 默认使用 Value 类型的名称作为缓存区域名称
         _cacheName = typeof(TValue).Name;
-        
+
         // 获取后台刷新相关的服务（如果已注册）
         _keyTracker = keyTracker ?? serviceProvider.GetService(typeof(CacheKeyTracker<TKey, TValue>)) as CacheKeyTracker<TKey, TValue>;
         _refreshPolicy = refreshPolicy ?? serviceProvider.GetService(typeof(ICacheRefreshPolicy<TKey, TValue>)) as ICacheRefreshPolicy<TKey, TValue>;
@@ -63,13 +67,13 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
             // 尝试获取 IDatabase。如果未注册，_redisDatabase 将为 null。
             // AbstractCacheService 在 GetRedisDatabase() 返回 null 时会跳过 Redis 操作。
             _redisDatabase = serviceProvider.GetService(typeof(IDatabase)) as IDatabase;
-                
+
             if (_redisDatabase == null)
             {
                 _logger.LogWarning("配置中启用了 Redis (UseRedis=true)，但容器中未注册 IDatabase 服务。Redis 缓存功能将不可用。");
             }
         }
-            
+
         // 解析本地缓存实例
         if (_options.UseLocalCache)
         {
@@ -77,6 +81,46 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
             if (_localCache == null)
             {
                 _logger.LogWarning("配置中启用了本地缓存 (UseLocalCache=true)，但容器中未注册 IMemoryCache 服务。本地缓存功能将不可用。");
+            }
+        }
+
+        // 获取 ConnectionMultiplexer 以支持 Pub/Sub
+        // 必须在 _localCache 初始化之后进行，因为订阅回调需要使用 _localCache
+        if (_options.UseRedis && serviceProvider.GetService(typeof(IConnectionMultiplexer)) is IConnectionMultiplexer connection)
+        {
+            _subscriber = connection.GetSubscriber();
+
+            // 初始化订阅 (Singleton for this generic type)
+            if (_options.PubSub.Enabled && !_isSubscribed)
+            {
+                lock (_subscriptionLock)
+                {
+                    if (!_isSubscribed)
+                    {
+                        var channel = $"{_options.PubSub.ChannelPrefix}:{_cacheName}";
+                        // Capture variables for closure
+                        var localCache = _localCache;
+                        if (localCache != null)
+                        {
+                            var cacheName = _cacheName; // Capture cache name
+                            _subscriber.Subscribe(RedisChannel.Literal(channel), (ch, msg) =>
+                            {
+                                if (!msg.HasValue) return;
+                                try
+                                {
+                                    var cacheKey = (string)msg!;
+                                    var fullKey = $"{cacheName}:{cacheKey}";
+                                    localCache.Remove(fullKey);
+                                }
+                                catch
+                                {
+                                    // Suppress exceptions in callback
+                                }
+                            });
+                            _isSubscribed = true;
+                        }
+                    }
+                }
             }
         }
     }
@@ -90,7 +134,7 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
     protected override IDatabase? GetRedisDatabase() => _redisDatabase;
 
     protected override IMemoryCache? GetLocalCache() => _localCache;
-        
+
     protected override ICacheSerializer GetCacheSerializer() => _serializer;
 
     protected override ILogger GetLogger() => _logger;
@@ -113,6 +157,20 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
             return key.ToString() ?? string.Empty;
         }
         throw new InvalidOperationException($"key为自定义DTO，请自行构建缓存key {key}");
+    }
+
+    /// <summary>
+    /// 当 Redis 缓存被设置时的回调。
+    /// <para>发送 Pub/Sub 消息以通知其他节点清除本地缓存。</para>
+    /// </summary>
+    protected override void OnRedisCacheSet(TKey key, TValue value, TimeSpan? expiry)
+    {
+        if (_options.PubSub.Enabled && _subscriber != null)
+        {
+            var channel = $"{_options.PubSub.ChannelPrefix}:{_cacheName}";
+            var cacheKey = BuildCacheKey(key);
+            _subscriber.PublishAsync(RedisChannel.Literal(channel), cacheKey, CommandFlags.FireAndForget);
+        }
     }
 
     #endregion
@@ -187,7 +245,7 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
     public async Task RefreshKeyAsync(TKey key)
     {
         var fullKey = GetFullKey(key);
-        
+
         // 1. 检查本地缓存是否仍然存在 (Double Check)
         // 如果本地缓存已经消失，说明不再需要刷新（或者是已经被淘汰了）
         // 注意：使用 object 接收，以兼容 NullValObj (当 TValue 不为 object 时，TryGetValue<TValue> 会失败)
@@ -228,11 +286,11 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
         // 4. 更新缓存或移除
         if (newValue != null)
         {
-             // 覆写缓存以确保新鲜度，这会重置过期时间并保持 KeyTracker 活跃
-             await PutAsync(key, newValue);
-             
-             // 更新下一次刷新时间
-             _keyTracker?.UpdateNextRefresh(key);
+            // 覆写缓存以确保新鲜度，这会重置过期时间并保持 KeyTracker 活跃
+            await PutAsync(key, newValue);
+
+            // 更新下一次刷新时间
+            _keyTracker?.UpdateNextRefresh(key);
         }
         else
         {

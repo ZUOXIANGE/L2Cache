@@ -36,6 +36,11 @@ public class L2CacheOptions
     public LockOptions Lock { get; set; } = new LockOptions();
 
     /// <summary>
+    /// Pub/Sub 配置（用于多级缓存同步）
+    /// </summary>
+    public PubSubOptions PubSub { get; set; } = new PubSubOptions();
+
+    /// <summary>
     /// Redis 缓存配置类
     /// </summary>
     public class RedisCacheOptions
@@ -93,6 +98,22 @@ public class L2CacheOptions
         /// 分布式锁过期时间（防止死锁）
         /// </summary>
         public TimeSpan DistributedLockExpiry { get; set; } = TimeSpan.FromSeconds(30);
+    }
+
+    /// <summary>
+    /// Pub/Sub 配置类
+    /// </summary>
+    public class PubSubOptions
+    {
+        /// <summary>
+        /// 是否启用 Pub/Sub 缓存同步
+        /// </summary>
+        public bool Enabled { get; set; } = false;
+
+        /// <summary>
+        /// 订阅频道前缀
+        /// </summary>
+        public string ChannelPrefix { get; set; } = "l2cache:sync";
     }
 
     /// <summary>
