@@ -14,8 +14,7 @@ public class RedisTestFixture : IAsyncLifetime
     public RedisTestFixture()
     {
         // 配置 Redis 容器，使用 redis:7.0 镜像
-        _redisContainer = new RedisBuilder()
-            .WithImage("redis:7.0")
+        _redisContainer = new RedisBuilder("redis:7.0")
             .Build();
     }
 

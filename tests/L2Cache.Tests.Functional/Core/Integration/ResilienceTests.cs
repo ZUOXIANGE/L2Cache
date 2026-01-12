@@ -20,8 +20,7 @@ public class ResilienceTests : IAsyncLifetime
 
     public ResilienceTests()
     {
-        _redisContainer = new RedisBuilder()
-            .WithImage("redis:7.0")
+        _redisContainer = new RedisBuilder("redis:7.0")
             .Build();
     }
 
