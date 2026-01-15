@@ -21,7 +21,11 @@ L2Cache is a modern distributed second-level cache library designed for .NET app
 - **🚀 Multi-Level Caching Architecture**
   - **L1 (Memory)**: Based on `IMemoryCache`, providing nanosecond-level data access and automatically handling hot data.
   - **L2 (Redis)**: Based on `StackExchange.Redis`, providing distributed sharing capabilities to ensure data consistency and persistence.
-  - **Smart Synchronization**: Automatically handles data synchronization and eviction between L1 and L2 to ensure cache consistency across nodes.
+  - **Pub/Sub Real-time Sync**: Uses Redis Pub/Sub mechanism to notify all nodes to clear corresponding L1 cache when L2 cache updates, ensuring strong cluster data consistency.
+
+- **⚡ High-Performance Operations**
+  - **Batch Operations**: Supports batch APIs like `BatchGet`, `BatchPut`, `BatchEvict`. Uses Pipeline to reduce network RTT and significantly improve throughput.
+  - **Serialization Extensions**: Supports System.Text.Json (default) and MemoryPack for efficient binary serialization.
 
 - **🛡️ High Availability & Fault Tolerance**
   - **Fault Degradation**: Automatically degrades to pure memory mode when Redis is unavailable, ensuring uninterrupted service.
@@ -89,6 +93,9 @@ builder.Services.AddL2Cache(options =>
     // Enable Concurrency Locks (Optional)
     options.Lock.EnabledMemoryLock = true;
     options.Lock.EnabledDistributedLock = true;
+    
+    // Enable Pub/Sub Message Subscription (Optional)
+    options.PubSub.Enabled = true;
 })
 .AddL2CacheTelemetry(); // Enable Telemetry
 ```

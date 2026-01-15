@@ -21,7 +21,11 @@ L2Cache 是一个为 .NET 应用程序设计的现代化分布式二级缓存库
 - **🚀 多级缓存架构**
   - **L1 (内存)**: 基于 `IMemoryCache`，提供纳秒级数据访问，自动处理热点数据。
   - **L2 (Redis)**: 基于 `StackExchange.Redis`，提供分布式共享能力，确保数据一致性与持久化。
-  - **智能同步**: 自动处理 L1 与 L2 之间的数据同步与驱逐，确保各节点缓存一致。
+  - **Pub/Sub 实时同步**: 利用 Redis 发布/订阅机制，当 L2 缓存更新时，实时通知所有节点清除对应的 L1 缓存，确保集群数据强一致性。
+
+- **⚡ 高性能操作**
+  - **批量操作**: 支持 `BatchGet`, `BatchPut`, `BatchEvict` 等批量 API，底层使用 Pipeline 减少网络往返 (RTT)，大幅提升吞吐量。
+  - **序列化扩展**: 支持 System.Text.Json (默认) 和 MemoryPack 等高效二进制序列化。
 
 - **🛡️ 高可用与容错**
   - **故障降级**: Redis 不可用时自动降级为纯内存模式，保障服务不中断。
@@ -89,6 +93,9 @@ builder.Services.AddL2Cache(options =>
     // 启用并发锁 (可选)
     options.Lock.EnabledMemoryLock = true;
     options.Lock.EnabledDistributedLock = true;
+    
+    // 启用 Pub/Sub 消息订阅 (可选)
+    options.PubSub.Enabled = true;
 })
 .AddL2CacheTelemetry(); // 启用遥测
 ```
