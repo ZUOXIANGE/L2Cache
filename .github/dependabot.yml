@@ -17,10 +17,9 @@ updates:
           - "OpenTelemetry.*"
       testing:
         patterns:
-          - "xunit*"
-          - "FluentAssertions"
+          - "TUnit"
           - "Moq"
-          - "coverlet*"
+          - "Testcontainers*"
           - "Microsoft.NET.Test.Sdk"
 
   # GitHub Actions

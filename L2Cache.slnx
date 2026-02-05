@@ -16,6 +16,7 @@
     <Project Path="examples/L2Cache.Examples/L2Cache.Examples.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/L2Cache.Tests.Functional/L2Cache.Tests.Functional.csproj" />
+    <Project Path="tests/L2Cache.Tests.Unit/L2Cache.Tests.Unit.csproj" />
+    <Project Path="tests/L2Cache.Tests.Integration/L2Cache.Tests.Integration.csproj" />
   </Folder>
 </Solution>
