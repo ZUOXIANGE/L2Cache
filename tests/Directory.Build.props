@@ -1,0 +1,10 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- 测试项目中允许方法名包含下划线 -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+    <!-- 暂时忽略 xUnit1051 (CancellationToken)，因为涉及大量修改 -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+</Project>

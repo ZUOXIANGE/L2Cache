@@ -6,7 +6,7 @@ namespace L2Cache.Internal;
 /// 异步 Keyed 锁
 /// <para>基于 SemaphoreSlim 实现的细粒度内存锁。</para>
 /// </summary>
-internal class AsyncKeyedLocker<TKey> where TKey : notnull
+internal sealed class AsyncKeyedLocker<TKey> where TKey : notnull
 {
     private readonly ConcurrentDictionary<TKey, SemaphoreSlim> _semaphores = new();
 
@@ -43,7 +43,7 @@ internal class AsyncKeyedLocker<TKey> where TKey : notnull
         }
     }
 
-    private class Releaser : IDisposable
+    private sealed class Releaser : IDisposable
     {
         private readonly TKey _key;
         private readonly AsyncKeyedLocker<TKey> _locker;

@@ -106,9 +106,9 @@ public interface ITelemetryProvider : IDisposable
     /// </summary>
     /// <param name="cacheName">缓存名称。</param>
     /// <param name="operation">操作名称。</param>
-    /// <param name="error">异常对象。</param>
+    /// <param name="exception">异常对象。</param>
     /// <param name="responseTime">错误发生前的耗时。</param>
-    void RecordCacheError(string cacheName, string operation, Exception error, TimeSpan responseTime);
+    void RecordCacheError(string cacheName, string operation, Exception exception, TimeSpan responseTime);
 
     /// <summary>
     /// 记录数据源回源加载的结果。

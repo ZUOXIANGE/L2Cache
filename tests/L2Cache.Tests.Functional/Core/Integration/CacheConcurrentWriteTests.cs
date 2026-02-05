@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
-using Xunit.Abstractions;
+// using Xunit.Abstractions;
 
 namespace L2Cache.Tests.Functional.Core.Integration;
 

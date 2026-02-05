@@ -41,13 +41,13 @@ public class BasicBenchmarks
     }
 
     [Benchmark]
-    public async Task BasicGet_Miss()
+    public async Task BasicGetMiss()
     {
         await _cache.GetAsync($"key_{Guid.NewGuid()}");
     }
 
     [Benchmark]
-    public async Task BatchGet_Hit()
+    public async Task BatchGetHit()
     {
         await _cache.BatchGetAsync(_batchKeys);
     }

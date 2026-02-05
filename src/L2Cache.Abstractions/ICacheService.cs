@@ -35,7 +35,7 @@ public interface ICacheService<TKey, TValue> where TKey : notnull
 
     /// <summary>
     /// 获取或加载缓存（Cache-Aside 模式）。
-    /// <para>优先从缓存获取；如果缓存不存在，则调用 <see cref="QueryDataAsync"/> 加载数据并回填到缓存中。</para>
+    /// <para>优先从缓存获取；如果缓存不存在，则调用 <c>QueryDataAsync</c> 加载数据并回填到缓存中。</para>
     /// </summary>
     /// <param name="key">业务 Key。</param>
     /// <param name="expiry">缓存过期时间。如果为 null，则使用默认配置。</param>
@@ -71,7 +71,7 @@ public interface ICacheService<TKey, TValue> where TKey : notnull
 
     /// <summary>
     /// 更新业务数据并清除缓存。
-    /// <para>这是一个组合操作：先调用 <see cref="UpdateDataAsync"/> 更新数据源，然后移除对应的缓存项，以保证数据一致性。</para>
+    /// <para>这是一个组合操作：先调用 <c>UpdateDataAsync</c> 更新数据源，然后移除对应的缓存项，以保证数据一致性。</para>
     /// </summary>
     /// <param name="key">业务 Key。</param>
     /// <param name="value">新的业务数据。</param>
@@ -80,7 +80,7 @@ public interface ICacheService<TKey, TValue> where TKey : notnull
 
     /// <summary>
     /// 重新加载缓存。
-    /// <para>强制调用 <see cref="QueryDataAsync"/> 从数据源加载最新数据，并更新到缓存中。</para>
+    /// <para>强制调用 <c>QueryDataAsync</c> 从数据源加载最新数据，并更新到缓存中。</para>
     /// </summary>
     /// <param name="key">业务 Key。</param>
     /// <param name="expiry">缓存过期时间。如果为 null，则使用默认配置。</param>
@@ -107,7 +107,7 @@ public interface ICacheService<TKey, TValue> where TKey : notnull
 
     /// <summary>
     /// 批量获取或加载缓存。
-    /// <para>优先批量查询缓存；对于未命中的 Key，调用 <see cref="QueryDataListAsync"/> 批量回源加载，并回填缓存。</para>
+    /// <para>优先批量查询缓存；对于未命中的 Key，调用 <c>QueryDataListAsync</c> 批量回源加载，并回填缓存。</para>
     /// </summary>
     /// <param name="keyList">业务 Key 列表。</param>
     /// <param name="expiry">缓存过期时间。如果为 null，则使用默认配置。</param>

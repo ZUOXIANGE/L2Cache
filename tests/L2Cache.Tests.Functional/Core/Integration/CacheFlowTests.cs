@@ -31,7 +31,7 @@ public class CacheFlowTests : BaseIntegrationTest
     /// </summary>
     public class TestFlowCacheService : L2CacheService<string, string>
     {
-        private int _queryDataCount = 0;
+        private int _queryDataCount;
         public int QueryDataCount => _queryDataCount;
 
         public TestFlowCacheService(

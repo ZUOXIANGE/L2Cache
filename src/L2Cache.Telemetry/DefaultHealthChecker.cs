@@ -252,7 +252,7 @@ public class DefaultHealthChecker : IHealthChecker
 
     private void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(DefaultHealthChecker));
+        ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
     public void Dispose()
@@ -261,6 +261,7 @@ public class DefaultHealthChecker : IHealthChecker
         _disposed = true;
         _isMonitoring = false;
         _checkTimer?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
 

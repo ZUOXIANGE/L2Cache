@@ -957,10 +957,7 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
         // 2. 找出缺失的 Key
         var missingKeys = keyList.Where(k => !result.ContainsKey(k)).ToList();
 
-        if (!missingKeys.Any())
-        {
-            return result;
-        }
+        if (missingKeys.Count == 0) return result;
 
         // 3. 批量回源加载
         var loadedData = await QueryDataListAsync(missingKeys);

@@ -4,7 +4,7 @@ namespace L2Cache.Internal;
 
 public class CacheKeyTracker<TKey, TValue> where TKey : notnull
 {
-    private class RefreshEntry
+    private sealed class RefreshEntry
     {
         public DateTimeOffset NextRefresh { get; set; }
         public TimeSpan Interval { get; set; }
@@ -12,7 +12,7 @@ public class CacheKeyTracker<TKey, TValue> where TKey : notnull
 
     private readonly ConcurrentDictionary<TKey, RefreshEntry> _entries = new();
 
-    public bool IsEnabled { get; set; } = false;
+    public bool IsEnabled { get; set; }
 
     public void Track(TKey key, TimeSpan interval)
     {

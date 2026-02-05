@@ -35,79 +35,13 @@ jobs:
       - name: Check Formatting
         run: dotnet format --verify-no-changes
 
-  build-and-test:
-    name: Build and Test
-    needs: lint
-    runs-on: ubuntu-latest
-    
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-
-    - name: Restore dependencies
-      run: dotnet restore L2Cache.slnx
-
-    - name: Build
-      run: dotnet build L2Cache.slnx --configuration Release --no-restore
-
-    - name: Test
-      run: |
-        dotnet test L2Cache.slnx \
-          --configuration Release \
-          --no-build \
-          --verbosity normal \
-          --collect:"XPlat Code Coverage" \
-          --results-directory ./coverage
-
-    - name: Code Coverage Report
-      uses: irongut/CodeCoverageSummary@v1.3.0
-      with:
-        filename: coverage/**/coverage.cobertura.xml
-        badge: true
-        fail_below_min: false
-        format: markdown
-        hide_branch_rate: false
-        hide_complexity: true
-        indicators: true
-        output: both
-        thresholds: '60 80'
-
-    - name: Add Coverage PR Comment
-      uses: marocchino/sticky-pull-request-comment@v2
-      if: github.event_name == 'pull_request'
-      with:
-        recreate: true
-        path: code-coverage-results.md
-
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        directory: ./coverage
-        fail_ci_if_error: false
-
-  build-windows:
-    name: Build (Windows)
-    needs: lint
-    runs-on: windows-latest
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -122,3 +56,58 @@ jobs:
 
       - name: Build
         run: dotnet build L2Cache.slnx --configuration Release --no-restore
+
+  test:
+    name: Integration Tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore L2Cache.slnx
+
+      - name: Build
+        run: dotnet build L2Cache.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: |
+          dotnet test L2Cache.slnx \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage
+
+      - name: Code Coverage Report
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage/**/coverage.cobertura.xml
+          badge: true
+          fail_below_min: false
+          format: markdown
+          hide_branch_rate: false
+          hide_complexity: true
+          indicators: true
+          output: both
+          thresholds: '60 80'
+
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          path: code-coverage-results.md
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage
+          fail_ci_if_error: false

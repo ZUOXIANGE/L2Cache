@@ -22,7 +22,8 @@ public class NullValueCachingTests : BaseIntegrationTest
 
     public class TestNullCacheService : L2CacheService<string, string>
     {
-        public int QueryDataCount = 0;
+        private int _queryDataCount;
+        public int QueryDataCount => _queryDataCount;
 
         public TestNullCacheService(
             IServiceProvider sp,
@@ -37,8 +38,8 @@ public class NullValueCachingTests : BaseIntegrationTest
 
         protected override Task<string?> QueryDataAsync(string key)
         {
-            Interlocked.Increment(ref QueryDataCount);
-            if (key.StartsWith("null")) return Task.FromResult<string?>(null);
+            Interlocked.Increment(ref _queryDataCount);
+            if (key.StartsWith("null", StringComparison.Ordinal)) return Task.FromResult<string?>(null);
             return Task.FromResult<string?>($"val_{key}");
         }
     }

@@ -2,7 +2,7 @@ using BenchmarkDotNet.Running;
 
 namespace L2Cache.Benchmarks;
 
-class Program
+internal sealed class Program
 {
     static void Main(string[] args)
     {

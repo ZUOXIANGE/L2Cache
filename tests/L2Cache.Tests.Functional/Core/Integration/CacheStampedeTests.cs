@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
+// using Xunit.Abstractions;
 
 namespace L2Cache.Tests.Functional.Core.Integration;
 
@@ -30,7 +30,7 @@ public class CacheStampedeTests : BaseIntegrationTest
     /// </summary>
     public class TestStampedeCacheService : L2CacheService<string, string>
     {
-        private int _queryDataCount = 0;
+        private int _queryDataCount;
         public int QueryDataCount => _queryDataCount;
 
         public TestStampedeCacheService(

@@ -11,7 +11,7 @@ namespace L2Cache.Tests.Functional.Telemetry;
 /// 默认健康检查器测试
 /// 测试 Redis 和缓存系统的健康检查逻辑
 /// </summary>
-public class DefaultHealthCheckerTests
+public class DefaultHealthCheckerTests : IDisposable
 {
     private readonly Mock<ILogger<DefaultHealthChecker>> _mockLogger;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
@@ -27,6 +27,12 @@ public class DefaultHealthCheckerTests
             CheckInterval = TimeSpan.FromSeconds(1)
         };
         _healthChecker = new DefaultHealthChecker(_mockServiceProvider.Object, _options, _mockLogger.Object);
+    }
+
+    public void Dispose()
+    {
+        _healthChecker.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -225,7 +231,7 @@ public class DefaultHealthCheckerTests
     public async Task CheckHealthAsync_WithThrowingCheck_ShouldHandleException()
     {
         // Arrange
-        _healthChecker.AddHealthCheck("failing_check", ct => throw new Exception("Boom!"));
+        _healthChecker.AddHealthCheck("failing_check", ct => throw new InvalidOperationException("Boom!"));
 
         // Act
         var result = await _healthChecker.CheckHealthAsync();

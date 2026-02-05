@@ -14,6 +14,7 @@ public class NoOpTelemetryProvider : ITelemetryProvider
 
     public void Dispose()
     {
+        GC.SuppressFinalize(this);
     }
 
     public CacheStatistics? GetCacheStatistics(string cacheName)
@@ -34,7 +35,7 @@ public class NoOpTelemetryProvider : ITelemetryProvider
     {
     }
 
-    public void RecordCacheError(string cacheName, string operation, Exception error, TimeSpan responseTime)
+    public void RecordCacheError(string cacheName, string operation, Exception exception, TimeSpan responseTime)
     {
     }
 
@@ -84,7 +85,7 @@ public class NoOpTelemetryProvider : ITelemetryProvider
         return new NoOpDisposable();
     }
 
-    private class NoOpDisposable : IDisposable
+    private sealed class NoOpDisposable : IDisposable
     {
         public void Dispose()
         {

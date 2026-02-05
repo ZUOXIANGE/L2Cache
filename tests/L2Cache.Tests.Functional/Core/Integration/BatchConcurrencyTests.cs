@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
+// using Xunit.Abstractions;
 
 namespace L2Cache.Tests.Functional.Core.Integration;
 
@@ -27,11 +27,11 @@ public class BatchConcurrencyTests : BaseIntegrationTest
 
     public class TestBatchCacheService : L2CacheService<string, string>
     {
-        private int _queryListCount = 0;
+        private int _queryListCount;
         public int QueryListCount => _queryListCount;
         
         // Track individual key queries if QueryDataListAsync is not used or splits calls
-        private int _querySingleCount = 0; 
+        private int _querySingleCount; 
         public int QuerySingleCount => _querySingleCount;
 
         public TestBatchCacheService(

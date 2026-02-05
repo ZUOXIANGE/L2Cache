@@ -11,24 +11,25 @@ namespace L2Cache.Tests.Functional.Fixtures;
 [Collection("Shared Test Collection")]
 public abstract class BaseIntegrationTest : IDisposable
 {
-    protected readonly HttpClient _client;
-    protected readonly IntegrationTestFactory _factory;
-    protected readonly IServiceScope _scope;
+    protected HttpClient Client { get; }
+    protected IntegrationTestFactory Factory { get; }
+    protected IServiceScope Scope { get; }
     
     protected BaseIntegrationTest(RedisTestFixture fixture)
     {
         // 使用 RedisTestFixture 中的连接字符串初始化工厂
-        _factory = new IntegrationTestFactory();
-        _factory.RedisConnectionString = fixture.ConnectionString;
-        _client = _factory.CreateClient();
-        _scope = _factory.Services.CreateScope();
+        Factory = new IntegrationTestFactory();
+        Factory.RedisConnectionString = fixture.ConnectionString;
+        Client = Factory.CreateClient();
+        Scope = Factory.Services.CreateScope();
     }
     
     public void Dispose()
     {
-        _scope.Dispose();
-        _client.Dispose();
-        _factory.Dispose();
+        Scope.Dispose();
+        Client.Dispose();
+        Factory.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -36,6 +37,6 @@ public abstract class BaseIntegrationTest : IDisposable
     /// </summary>
     protected T GetService<T>() where T : notnull
     {
-        return _scope.ServiceProvider.GetRequiredService<T>();
+        return Scope.ServiceProvider.GetRequiredService<T>();
     }
 }

@@ -372,7 +372,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
             if (_options.RecordCacheKeys && !string.IsNullOrEmpty(key))
             {
                 var recordedKey = key.Length > _options.MaxKeyLength 
-                    ? key.Substring(0, _options.MaxKeyLength) + "..." 
+                    ? string.Concat(key.AsSpan(0, _options.MaxKeyLength), "...")
                     : key;
                 operationTags.Add(new(TelemetryConstants.TagNames.KeyPattern, recordedKey));
             }
@@ -449,7 +449,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
     }
 
     /// <inheritdoc />
-    public void RecordCacheError(string cacheName, string operation, Exception error, TimeSpan responseTime)
+    public void RecordCacheError(string cacheName, string operation, Exception exception, TimeSpan responseTime)
     {
          if (!string.IsNullOrEmpty(cacheName))
         {
@@ -457,13 +457,13 @@ public class DefaultTelemetryProvider : ITelemetryProvider
             lock (stats.LockObject)
             {
                 stats.ErrorCount++;
-                stats.LastError = error.Message;
+                stats.LastError = exception.Message;
                 stats.LastErrorTime = DateTime.UtcNow;
                 stats.LastUpdateTime = DateTime.UtcNow;
             }
         }
         
-        RecordException(error, new Dictionary<string, object>
+        RecordException(exception, new Dictionary<string, object>
         {
             { TelemetryConstants.TagNames.CacheName, cacheName },
             { TelemetryConstants.TagNames.Operation, operation }
@@ -551,7 +551,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
         return new TelemetryTimer(this, name, tags);
     }
 
-    private class TelemetryTimer : IDisposable
+    private sealed class TelemetryTimer : IDisposable
     {
         private readonly DefaultTelemetryProvider _provider;
         private readonly string _name;
@@ -584,7 +584,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
         });
     }
 
-    private void UpdateResponseTime(CacheStatisticsInternal stats, TimeSpan responseTime)
+    private static void UpdateResponseTime(CacheStatisticsInternal stats, TimeSpan responseTime)
     {
         var responseTimeMs = responseTime.TotalMilliseconds;
         stats.TotalResponseTimeMs += responseTimeMs;
@@ -593,7 +593,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
         if (responseTimeMs < stats.MinResponseTimeMs) stats.MinResponseTimeMs = responseTimeMs;
     }
 
-    private CacheStatistics ConvertToPublicStatistics(CacheStatisticsInternal internalStats)
+    private static CacheStatistics ConvertToPublicStatistics(CacheStatisticsInternal internalStats)
     {
         return new CacheStatistics
         {
@@ -615,7 +615,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
         };
     }
 
-    private void ResetInternalStatistics(CacheStatisticsInternal stats)
+    private static void ResetInternalStatistics(CacheStatisticsInternal stats)
     {
         stats.L1HitCount = 0;
         stats.L1MissCount = 0;
@@ -695,9 +695,10 @@ public class DefaultTelemetryProvider : ITelemetryProvider
         _meter?.Dispose();
         
         _logger.LogInformation("遥测提供程序已释放");
+        GC.SuppressFinalize(this);
     }
 
-    private class CacheStatisticsInternal
+    private sealed class CacheStatisticsInternal
     {
         public Lock LockObject { get; } = new();
         public string CacheName { get; set; } = string.Empty;

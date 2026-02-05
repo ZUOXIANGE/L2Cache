@@ -48,7 +48,7 @@ public class TelemetryOptions
     /// <summary>
     /// 是否记录缓存键
     /// </summary>
-    public bool RecordCacheKeys { get; set; } = false;
+    public bool RecordCacheKeys { get; set; }
 
     /// <summary>
     /// 是否记录缓存值大小
@@ -68,7 +68,7 @@ public class TelemetryOptions
     /// <summary>
     /// 是否启用详细指标
     /// </summary>
-    public bool EnableDetailedMetrics { get; set; } = false;
+    public bool EnableDetailedMetrics { get; set; }
 
     /// <summary>
     /// 自定义标签

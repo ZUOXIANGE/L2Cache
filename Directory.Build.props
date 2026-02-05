@@ -6,15 +6,23 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591: Missing XML comment -->
+    <!-- CA1848: For improved performance, use the LoggerMessage delegates -->
+    <NoWarn>$(NoWarn);CS1591;CA1848</NoWarn>
+    
     <!-- 按需启用预览特性（若项目使用） -->
     <EnablePreviewFeatures>false</EnablePreviewFeatures>
-  </PropertyGroup>
 
-  <!-- 统一包源或其他全局项可在此扩展 -->
-  <!--
-  <ItemGroup>
-    <PackageReference Update="Microsoft.Extensions.Logging" Version="10.0.0" />
-  </ItemGroup>
-  -->
+    <!-- Package metadata -->
+    <Authors>L2Cache Team</Authors>
+    <Company>L2Cache Team</Company>
+    <Copyright>Copyright (c) 2024 L2Cache Team</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
 </Project>

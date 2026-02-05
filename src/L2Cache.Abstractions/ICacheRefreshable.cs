@@ -3,7 +3,7 @@ namespace L2Cache.Abstractions;
 /// <summary>
 /// 定义支持后台刷新的缓存服务接口。
 /// <para>
-/// 实现此接口的缓存服务可以被 <see cref="L2Cache.Background.CacheRefreshBackgroundService{TKey, TValue}"/> 自动调度刷新。
+/// 实现此接口的缓存服务可以被 <c>L2Cache.Background.CacheRefreshBackgroundService{TKey, TValue}</c> 自动调度刷新。
 /// </para>
 /// </summary>
 /// <typeparam name="TKey">缓存键的类型。</typeparam>

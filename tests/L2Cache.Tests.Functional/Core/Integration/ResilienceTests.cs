@@ -24,7 +24,7 @@ public class ResilienceTests : IAsyncLifetime
             .Build();
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         await _redisContainer.StartAsync();
         InitializeApp();
@@ -45,10 +45,11 @@ public class ResilienceTests : IAsyncLifetime
         _factory?.Dispose();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         CleanupApp();
         await _redisContainer.DisposeAsync();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

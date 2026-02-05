@@ -1,6 +1,9 @@
-using System.Text;
 using FluentAssertions;
 using L2Cache.Serializers.Json;
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using Xunit;
 
 namespace L2Cache.Tests.Functional.Serializers;
 
@@ -140,7 +143,7 @@ public class JsonCacheSerializerTests
         // Assert (断言)
         result.Should().NotBeNullOrEmpty();
         result.Should().Contain(_testData.Name);
-        result.Should().Contain(_testData.Id.ToString());
+        result.Should().Contain(_testData.Id.ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -298,7 +301,7 @@ public class JsonCacheSerializerTests
         deserialized!.Name.Should().Be(value);
     }
 
-    private class TestData
+    private sealed class TestData
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;

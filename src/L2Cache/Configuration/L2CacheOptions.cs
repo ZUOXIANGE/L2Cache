@@ -13,7 +13,7 @@ public class L2CacheOptions
     /// <summary>
     /// 是否启用 Redis 缓存（L2）
     /// </summary>
-    public bool UseRedis { get; set; } = false;
+    public bool UseRedis { get; set; }
 
     /// <summary>
     /// Redis 缓存配置
@@ -53,7 +53,7 @@ public class L2CacheOptions
         /// <summary>
         /// 数据库索引
         /// </summary>
-        public int Database { get; set; } = 0;
+        public int Database { get; set; }
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public class L2CacheOptions
         /// <summary>
         /// 是否启用后台刷新
         /// </summary>
-        public bool Enabled { get; set; } = false;
+        public bool Enabled { get; set; }
 
         /// <summary>
         /// 刷新检查间隔
@@ -108,7 +108,7 @@ public class L2CacheOptions
         /// <summary>
         /// 是否启用 Pub/Sub 缓存同步
         /// </summary>
-        public bool Enabled { get; set; } = false;
+        public bool Enabled { get; set; }
 
         /// <summary>
         /// 订阅频道前缀
@@ -120,7 +120,7 @@ public class L2CacheOptions
     /// 是否开启空值缓存（防止缓存穿透）
     /// <para>默认关闭。</para>
     /// </summary>
-    public bool CacheNullValues { get; set; } = false;
+    public bool CacheNullValues { get; set; }
 
     /// <summary>
     /// 空值缓存的过期时间

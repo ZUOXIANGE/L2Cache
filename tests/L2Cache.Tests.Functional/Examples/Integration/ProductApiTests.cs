@@ -30,7 +30,7 @@ public class ProductApiTests : BaseIntegrationTest
 
         // Act 1: 第一次调用 (缓存未命中 -> 数据库)
         var start1 = DateTime.UtcNow;
-        var response1 = await _client.GetAsync(url);
+        var response1 = await Client.GetAsync(url);
         var end1 = DateTime.UtcNow;
         var duration1 = end1 - start1;
 
@@ -42,7 +42,7 @@ public class ProductApiTests : BaseIntegrationTest
 
         // Act 2: 第二次调用 (缓存命中 -> Redis/L1)
         var start2 = DateTime.UtcNow;
-        var response2 = await _client.GetAsync(url);
+        var response2 = await Client.GetAsync(url);
         var end2 = DateTime.UtcNow;
         var duration2 = end2 - start2;
 

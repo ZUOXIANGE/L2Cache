@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
+// using Xunit.Abstractions;
 
 namespace L2Cache.Tests.Functional.Core.Integration;
 
@@ -32,7 +32,7 @@ public class LockPerformanceTests : BaseIntegrationTest
     /// </summary>
     public class PerfCacheService : L2CacheService<string, string>
     {
-        private int _queryCount = 0;
+        private int _queryCount;
         public int QueryCount => _queryCount;
         public int DbDelayMs { get; set; } = 50;
 

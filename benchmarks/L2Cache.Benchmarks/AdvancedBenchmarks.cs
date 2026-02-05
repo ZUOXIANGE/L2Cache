@@ -52,7 +52,7 @@ public class AdvancedBenchmarks
     }
 
     [Benchmark]
-    public async Task LargeObjectGet_Hit()
+    public async Task LargeObjectGetHit()
     {
         await _cache.GetAsync(_largeObjectKey);
     }

@@ -4,8 +4,7 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
     open-pull-requests-limit: 10
     groups:
       microsoft:
@@ -13,6 +12,9 @@ updates:
           - "Microsoft.*"
         exclude-patterns:
           - "Microsoft.NET.Test.Sdk"
+      otel:
+        patterns:
+          - "OpenTelemetry.*"
       testing:
         patterns:
           - "xunit*"

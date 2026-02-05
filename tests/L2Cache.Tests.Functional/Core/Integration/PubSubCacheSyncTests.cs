@@ -65,7 +65,7 @@ public class PubSubCacheSyncTests : IClassFixture<RedisTestFixture>
         valB2.Should().Be(value2, "Node B should have fetched the new value from L2 after L1 invalidation");
     }
 
-    private void ResetSubscriptionFlag()
+    private static void ResetSubscriptionFlag()
     {
         var type = typeof(L2CacheService<string, string>);
         var field = type.GetField("_isSubscribed", BindingFlags.Static | BindingFlags.NonPublic);
@@ -75,7 +75,7 @@ public class PubSubCacheSyncTests : IClassFixture<RedisTestFixture>
         }
     }
 
-    private IServiceProvider CreateServiceProvider(string nodeName)
+    private ServiceProvider CreateServiceProvider(string nodeName)
     {
         var services = new ServiceCollection();
         

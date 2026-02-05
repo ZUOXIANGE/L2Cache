@@ -2,7 +2,6 @@ using L2Cache.Tests.Functional.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using L2Cache.Abstractions;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace L2Cache.Tests.Functional.Core.Integration;
 
@@ -65,7 +64,8 @@ public class ConcurrencyTests : BaseIntegrationTest
             tasks.Add(Task.Run(async () => await cacheService.PutAsync(key, value)));
         }
 
-        var exception = await Record.ExceptionAsync(async () => await Task.WhenAll(tasks));
+        Func<Task> act = async () => await Task.WhenAll(tasks);
+        var exception = await Record.ExceptionAsync(act);
 
         // Assert (断言)
         Assert.Null(exception);

@@ -39,7 +39,7 @@ public class ProductCacheService : L2CacheService<int, ProductDto>
     public override string GetCacheName() => "products";
 
     // Build key like "products:1001"
-    public override string BuildCacheKey(int id) => id.ToString();
+    public override string BuildCacheKey(int id) => id.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     // Custom expiration policy
     protected override TimeSpan GetLocalCacheExpiry(TimeSpan? redisExpiry = null)
@@ -70,11 +70,11 @@ public class ProductCacheService : L2CacheService<int, ProductDto>
     }
 
     // Simulate Batch Database Query
-    protected override async Task<Dictionary<int, ProductDto>> QueryDataListAsync(List<int> ids)
+    protected override async Task<Dictionary<int, ProductDto>> QueryDataListAsync(List<int> keyList)
     {
         await Task.Delay(30);
         var result = new Dictionary<int, ProductDto>();
-        foreach (var id in ids)
+        foreach (var id in keyList)
         {
             if (id <= 0) continue;
             result[id] = new ProductDto

@@ -35,7 +35,7 @@ public class AdvancedController : ControllerBase
     [HttpPost("serializer/{type}")]
     public IActionResult SwitchSerializer(string type)
     {
-        switch (type.ToLower())
+        switch (type.ToLower(System.Globalization.CultureInfo.InvariantCulture))
         {
             case "json":
                 _productCache.SetSerializer(new JsonCacheSerializer());

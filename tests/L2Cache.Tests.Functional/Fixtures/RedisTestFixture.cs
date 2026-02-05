@@ -26,7 +26,7 @@ public class RedisTestFixture : IAsyncLifetime
     /// <summary>
     /// 初始化：启动 Redis 容器
     /// </summary>
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         await _redisContainer.StartAsync();
     }
@@ -34,8 +34,9 @@ public class RedisTestFixture : IAsyncLifetime
     /// <summary>
     /// 销毁：停止并释放 Redis 容器
     /// </summary>
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await _redisContainer.DisposeAsync();
+        GC.SuppressFinalize(this);
     }
 }

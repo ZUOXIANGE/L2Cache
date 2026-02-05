@@ -29,15 +29,15 @@ public class BackgroundRefreshTests
     /// 测试用的刷新策略
     /// 根据Key的前缀返回不同的刷新间隔
     /// </summary>
-    private class TestRefreshPolicy : ICacheRefreshPolicy<string, string>
+    private sealed class TestRefreshPolicy : ICacheRefreshPolicy<string, string>
     {
         public TimeSpan? GetRefreshInterval(string key)
         {
-            if (key.StartsWith("fast"))
+            if (key.StartsWith("fast", StringComparison.Ordinal))
             {
                 return TimeSpan.FromMilliseconds(200);
             }
-            if (key.StartsWith("slow"))
+            if (key.StartsWith("slow", StringComparison.Ordinal))
             {
                 return TimeSpan.FromSeconds(5);
             }

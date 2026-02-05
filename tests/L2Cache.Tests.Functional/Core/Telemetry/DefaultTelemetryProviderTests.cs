@@ -11,7 +11,7 @@ namespace L2Cache.Tests.Functional.Core.Telemetry;
 /// 默认遥测提供者测试
 /// 测试缓存指标收集和统计功能
 /// </summary>
-public class DefaultTelemetryProviderTests
+public class DefaultTelemetryProviderTests : IDisposable
 {
     private readonly Mock<ILogger<DefaultTelemetryProvider>> _mockLogger;
     private readonly IOptions<TelemetryOptions> _options;
@@ -26,6 +26,12 @@ public class DefaultTelemetryProviderTests
             EnableTracing = true
         });
         _telemetryProvider = new DefaultTelemetryProvider(_options.Value, _mockLogger.Object);
+    }
+
+    public void Dispose()
+    {
+        (_telemetryProvider as IDisposable)?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -159,7 +165,7 @@ public class DefaultTelemetryProviderTests
     public void RecordCacheError_ShouldIncrementErrorCount()
     {
         // Act (执行)
-        _telemetryProvider.RecordCacheError("test-cache", "Get", new Exception("test error"), TimeSpan.FromMilliseconds(10));
+        _telemetryProvider.RecordCacheError("test-cache", "Get", new InvalidOperationException("test error"), TimeSpan.FromMilliseconds(10));
 
         // Assert (断言)
         var stats = _telemetryProvider.GetCacheStatistics("test-cache");
