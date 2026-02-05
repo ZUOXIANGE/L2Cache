@@ -1,11 +1,11 @@
 using L2Cache;
-using L2Cache.Extensions;
 using L2Cache.Examples.Services;
+using L2Cache.Extensions;
 using Microsoft.OpenApi;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using OpenTelemetry.Exporter;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +25,7 @@ builder.Services.AddOpenTelemetry()
             .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("L2Cache.Examples"))
             .AddAspNetCoreInstrumentation()
             .AddMeter("L2Cache") // Subscribe to L2Cache metrics
-            .AddOtlpExporter(options => 
+            .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelEndpoint);
                 options.Protocol = OtlpExportProtocol.Grpc;
@@ -41,7 +41,7 @@ builder.Services.AddOpenTelemetry()
             .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("L2Cache.Examples"))
             .AddAspNetCoreInstrumentation()
             .AddSource("L2Cache") // Subscribe to L2Cache activities
-            .AddOtlpExporter(options => 
+            .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelEndpoint);
                 options.Protocol = OtlpExportProtocol.Grpc;
@@ -58,7 +58,7 @@ builder.Services.AddL2Cache(options =>
     options.UseLocalCache = true;
     options.UseRedis = true;
     options.Redis.ConnectionString = (builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379") + ",abortConnect=false";
-    
+
     // Enable Metrics
     options.Telemetry.MetricsPrefix = "l2cache";
     options.Telemetry.ActivitySourceName = "L2Cache";

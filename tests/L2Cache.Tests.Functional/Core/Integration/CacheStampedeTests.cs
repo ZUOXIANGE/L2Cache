@@ -97,7 +97,7 @@ public class CacheStampedeTests : BaseIntegrationTest
         // 启用了锁机制，预期回源次数为 1
         _output.WriteLine($"Concurrent requests: {concurrentClients}");
         _output.WriteLine($"Actual Source Queries: {cacheService.QueryDataCount}");
-        
+
         Assert.Equal(1, cacheService.QueryDataCount);
     }
 }

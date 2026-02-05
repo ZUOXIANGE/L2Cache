@@ -1,9 +1,10 @@
 using FluentAssertions;
-using L2Cache.Examples.Controllers;
-using L2Cache.Examples.Services;
-using L2Cache.Serializers.Json;
 using L2Cache.Abstractions.Telemetry;
 using L2Cache.Configuration;
+using L2Cache.Examples.Controllers;
+using L2Cache.Examples.Models;
+using L2Cache.Examples.Services;
+using L2Cache.Serializers.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,6 @@ using Microsoft.Extensions.Options;
 using Moq;
 using StackExchange.Redis;
 using Xunit;
-using L2Cache.Examples.Models;
 
 namespace L2Cache.Tests.Functional.Examples.Controllers;
 

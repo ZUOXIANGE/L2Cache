@@ -31,7 +31,7 @@ public interface ITelemetryProvider : IDisposable
     /// <param name="parentContext">父上下文（用于串联分布式追踪）。</param>
     /// <param name="tags">初始标签集合。</param>
     /// <returns>创建的 Activity 对象，如果未采样或创建失败可能返回 null。</returns>
-    Activity? StartActivity(string name, ActivityKind kind = ActivityKind.Internal, 
+    Activity? StartActivity(string name, ActivityKind kind = ActivityKind.Internal,
         ActivityContext parentContext = default, IEnumerable<KeyValuePair<string, object>>? tags = null);
 
     /// <summary>
@@ -87,8 +87,8 @@ public interface ITelemetryProvider : IDisposable
     /// <param name="duration">操作耗时。</param>
     /// <param name="size">数据大小（字节）。</param>
     /// <param name="tags">额外标签。</param>
-    void RecordCacheOperation(string cacheName, CacheOperation operation, string key, 
-        CacheLevel? level = null, bool? hit = null, TimeSpan? duration = null, 
+    void RecordCacheOperation(string cacheName, CacheOperation operation, string key,
+        CacheLevel? level = null, bool? hit = null, TimeSpan? duration = null,
         long? size = null, IEnumerable<KeyValuePair<string, object>>? tags = null);
 
     /// <summary>

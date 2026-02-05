@@ -33,8 +33,8 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
     private readonly ICacheRefreshPolicy<TKey, TValue>? _refreshPolicy;
 
     private readonly ISubscriber? _subscriber;
-    private static volatile bool _isSubscribed;
-    private static readonly Lock _subscriptionLock = new();
+    private static volatile bool IsSubscribed;
+    private static readonly Lock SubscriptionLock = new();
 
     #region Constructor
 
@@ -91,11 +91,11 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
             _subscriber = connection.GetSubscriber();
 
             // 初始化订阅 (Singleton for this generic type)
-            if (_options.PubSub.Enabled && !_isSubscribed)
+            if (_options.PubSub.Enabled && !IsSubscribed)
             {
-                lock (_subscriptionLock)
+                lock (SubscriptionLock)
                 {
-                    if (!_isSubscribed)
+                    if (!IsSubscribed)
                     {
                         var channel = $"{_options.PubSub.ChannelPrefix}:{_cacheName}";
                         // Capture variables for closure
@@ -117,7 +117,7 @@ public class L2CacheService<TKey, TValue> : AbstractCacheService<TKey, TValue>, 
                                     // Suppress exceptions in callback
                                 }
                             });
-                            _isSubscribed = true;
+                            IsSubscribed = true;
                         }
                     }
                 }

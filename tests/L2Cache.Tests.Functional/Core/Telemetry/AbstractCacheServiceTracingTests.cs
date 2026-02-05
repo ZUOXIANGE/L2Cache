@@ -40,9 +40,9 @@ public class AbstractCacheServiceTracingTests
         var telemetryMock = new Mock<ITelemetryProvider>();
         // 我们返回 null activity 以简化测试，验证调用即可。
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheGet, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheGet,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
             .Returns((Activity?)null);
 
@@ -53,9 +53,9 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheGet, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheGet,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);
     }
 
@@ -77,7 +77,7 @@ public class AbstractCacheServiceTracingTests
         // 1. 跳过 L1 检查
         // 2. 跳过 L2 检查
         // 3. 记录 L2 未命中 (Miss) 并返回默认值
-        
+
         // 验证 RecordCacheOperation 被调用 (记录 L2 Miss)
         telemetryMock.Verify(x => x.RecordCacheOperation(
             "TestCache",
@@ -99,9 +99,9 @@ public class AbstractCacheServiceTracingTests
         // Arrange (准备)
         var telemetryMock = new Mock<ITelemetryProvider>();
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheSet, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheSet,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
             .Returns((Activity?)null);
 
@@ -112,9 +112,9 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheSet, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheSet,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);
 
         // 验证记录 Set 操作
@@ -138,9 +138,9 @@ public class AbstractCacheServiceTracingTests
         // Arrange (准备)
         var telemetryMock = new Mock<ITelemetryProvider>();
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheEvict, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheEvict,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
             .Returns((Activity?)null);
 
@@ -151,9 +151,9 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheEvict, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheEvict,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);
 
         // 验证记录 Evict 操作
@@ -177,9 +177,9 @@ public class AbstractCacheServiceTracingTests
         // Arrange (准备)
         var telemetryMock = new Mock<ITelemetryProvider>();
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheGetOrLoad, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheGetOrLoad,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
             .Returns((Activity?)null);
 
@@ -190,9 +190,9 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheGetOrLoad, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheGetOrLoad,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);
     }
 
@@ -205,9 +205,9 @@ public class AbstractCacheServiceTracingTests
         // Arrange (准备)
         var telemetryMock = new Mock<ITelemetryProvider>();
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CachePutIfAbsent, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CachePutIfAbsent,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
             .Returns((Activity?)null);
 
@@ -218,9 +218,9 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CachePutIfAbsent, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CachePutIfAbsent,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);
     }
 
@@ -233,9 +233,9 @@ public class AbstractCacheServiceTracingTests
         // Arrange (准备)
         var telemetryMock = new Mock<ITelemetryProvider>();
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheReload, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheReload,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
             .Returns((Activity?)null);
 
@@ -246,9 +246,9 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheReload, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheReload,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);
     }
 
@@ -261,9 +261,9 @@ public class AbstractCacheServiceTracingTests
         // Arrange (准备)
         var telemetryMock = new Mock<ITelemetryProvider>();
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheBatchGet, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheBatchGet,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
             .Returns((Activity?)null);
 
@@ -274,9 +274,9 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheBatchGet, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheBatchGet,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);
     }
 
@@ -289,9 +289,9 @@ public class AbstractCacheServiceTracingTests
         // Arrange (准备)
         var telemetryMock = new Mock<ITelemetryProvider>();
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheBatchGetOrLoad, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheBatchGetOrLoad,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
             .Returns((Activity?)null);
 
@@ -302,9 +302,9 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheBatchGetOrLoad, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheBatchGetOrLoad,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);
     }
 
@@ -317,9 +317,9 @@ public class AbstractCacheServiceTracingTests
         // Arrange (准备)
         var telemetryMock = new Mock<ITelemetryProvider>();
         telemetryMock.Setup(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheBatchEvict, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheBatchEvict,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()))
             .Returns((Activity?)null);
 
@@ -330,9 +330,9 @@ public class AbstractCacheServiceTracingTests
 
         // Assert (断言)
         telemetryMock.Verify(x => x.StartActivity(
-            TelemetryConstants.ActivityNames.CacheBatchEvict, 
-            It.IsAny<ActivityKind>(), 
-            It.IsAny<ActivityContext>(), 
+            TelemetryConstants.ActivityNames.CacheBatchEvict,
+            It.IsAny<ActivityKind>(),
+            It.IsAny<ActivityContext>(),
             It.IsAny<IEnumerable<KeyValuePair<string, object>>>()), Times.Once);
     }
 }

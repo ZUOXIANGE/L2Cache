@@ -43,7 +43,7 @@ public class CustomInheritanceController : ControllerBase
 
         // 写入缓存
         await _userCache.PutAsync(id, user, TimeSpan.FromMinutes(10));
-        
+
         return Ok(user);
     }
 

@@ -1,6 +1,6 @@
+using L2Cache.Abstractions;
 using L2Cache.Tests.Functional.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
-using L2Cache.Abstractions;
 using Xunit;
 
 namespace L2Cache.Tests.Functional.Core.Integration;
@@ -29,7 +29,7 @@ public class ConcurrencyTests : BaseIntegrationTest
         var cacheService = GetService<ICacheService<string, string>>();
         var key = $"concurrent_get_{Guid.NewGuid()}";
         var expectedValue = "initial_value";
-        
+
         // 预热缓存
         await cacheService.PutAsync(key, expectedValue);
 
@@ -55,7 +55,7 @@ public class ConcurrencyTests : BaseIntegrationTest
         // Arrange (准备)
         var cacheService = GetService<ICacheService<string, string>>();
         var key = $"concurrent_put_{Guid.NewGuid()}";
-        
+
         // Act (执行)
         var tasks = new List<Task>();
         for (int i = 0; i < 50; i++)
@@ -69,7 +69,7 @@ public class ConcurrencyTests : BaseIntegrationTest
 
         // Assert (断言)
         Assert.Null(exception);
-        
+
         // 最终值检查 (应该是其中一个值)
         var finalValue = await cacheService.GetAsync(key);
         Assert.NotNull(finalValue);

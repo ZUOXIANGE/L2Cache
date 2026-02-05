@@ -17,7 +17,7 @@ public class CacheKeyTracker<TKey, TValue> where TKey : notnull
     public void Track(TKey key, TimeSpan interval)
     {
         if (!IsEnabled) return;
-        
+
         var entry = new RefreshEntry
         {
             Interval = interval,

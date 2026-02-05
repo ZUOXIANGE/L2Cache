@@ -8,7 +8,7 @@ internal sealed class Program
     {
         Console.WriteLine("L2Cache Performance Benchmarks");
         Console.WriteLine("==============================");
-        
+
         // Use BenchmarkSwitcher to allow running specific benchmarks or all of them
         var summary = BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
     }

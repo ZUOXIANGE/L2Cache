@@ -10,7 +10,7 @@ namespace L2Cache.Tests.Functional.Fixtures;
 public class RedisTestFixture : IAsyncLifetime
 {
     private readonly RedisContainer _redisContainer;
-    
+
     public RedisTestFixture()
     {
         // 配置 Redis 容器，使用 redis:7.0 镜像

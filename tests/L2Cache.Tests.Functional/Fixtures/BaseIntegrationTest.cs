@@ -14,7 +14,7 @@ public abstract class BaseIntegrationTest : IDisposable
     protected HttpClient Client { get; }
     protected IntegrationTestFactory Factory { get; }
     protected IServiceScope Scope { get; }
-    
+
     protected BaseIntegrationTest(RedisTestFixture fixture)
     {
         // 使用 RedisTestFixture 中的连接字符串初始化工厂
@@ -23,7 +23,7 @@ public abstract class BaseIntegrationTest : IDisposable
         Client = Factory.CreateClient();
         Scope = Factory.Services.CreateScope();
     }
-    
+
     public void Dispose()
     {
         Scope.Dispose();

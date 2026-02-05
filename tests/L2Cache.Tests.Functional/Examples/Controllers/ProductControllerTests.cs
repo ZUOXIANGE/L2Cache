@@ -1,7 +1,7 @@
+using L2Cache.Configuration;
 using L2Cache.Examples.Controllers;
 using L2Cache.Examples.Models;
 using L2Cache.Examples.Services;
-using L2Cache.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

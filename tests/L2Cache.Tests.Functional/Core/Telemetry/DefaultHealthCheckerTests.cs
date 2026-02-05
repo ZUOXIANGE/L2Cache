@@ -1,6 +1,6 @@
 using FluentAssertions;
-using L2Cache.Telemetry;
 using L2Cache.Abstractions.Telemetry;
+using L2Cache.Telemetry;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
@@ -55,7 +55,7 @@ public class DefaultHealthCheckerTests : IDisposable
     public void Constructor_WithNullServiceProvider_ShouldThrowArgumentNullException()
     {
         // Act & Assert (执行 & 断言)
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             new DefaultHealthChecker(null!, _options, _mockLogger.Object));
     }
 
@@ -78,7 +78,7 @@ public class DefaultHealthCheckerTests : IDisposable
     {
         // Act (执行)
         var checker = new DefaultHealthChecker(_mockServiceProvider.Object, null, _mockLogger.Object);
-        
+
         // Assert (断言)
         checker.Should().NotBeNull();
         checker.CheckInterval.Should().Be(TimeSpan.FromSeconds(30)); // 默认值
@@ -108,7 +108,7 @@ public class DefaultHealthCheckerTests : IDisposable
         // Arrange (准备)
         var mockMultiplexer = new Mock<IConnectionMultiplexer>();
         var mockDb = new Mock<IDatabase>();
-        
+
         mockMultiplexer.Setup(x => x.IsConnected).Returns(true);
         mockMultiplexer.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(mockDb.Object);
         mockDb.Setup(x => x.PingAsync(It.IsAny<CommandFlags>())).ReturnsAsync(TimeSpan.FromMilliseconds(10));
@@ -162,7 +162,7 @@ public class DefaultHealthCheckerTests : IDisposable
         cts.Cancel();
 
         // Act & Assert (执行 & 断言)
-        await Assert.ThrowsAsync<OperationCanceledException>(() => 
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
             _healthChecker.CheckHealthAsync(cts.Token));
     }
 
@@ -203,12 +203,12 @@ public class DefaultHealthCheckerTests : IDisposable
     {
         // Arrange
         var checkName = "test_check";
-        var checker = new Func<CancellationToken, Task<HealthCheckItemResult>>(ct => 
+        var checker = new Func<CancellationToken, Task<HealthCheckItemResult>>(ct =>
             Task.FromResult(new HealthCheckItemResult(HealthStatus.Healthy, "OK")));
 
         // Act - Add
         _healthChecker.AddHealthCheck(checkName, checker);
-        
+
         // Assert - Add
         _healthChecker.GetHealthCheckNames().Should().Contain(checkName);
 
@@ -283,14 +283,14 @@ public class DefaultHealthCheckerTests : IDisposable
 
         // 添加一个控制状态的检查
         var isHealthy = true;
-        _healthChecker.AddHealthCheck("toggle_check", ct => 
+        _healthChecker.AddHealthCheck("toggle_check", ct =>
             Task.FromResult(new HealthCheckItemResult(
-                isHealthy ? HealthStatus.Healthy : HealthStatus.Unhealthy, 
+                isHealthy ? HealthStatus.Healthy : HealthStatus.Unhealthy,
                 "Toggle")));
 
         // Act 1: 初始检查 (Unknown -> Healthy)
         await _healthChecker.CheckHealthAsync();
-        
+
         // Assert 1
         eventRaised.Should().BeTrue();
         oldStatus.Should().Be(HealthStatus.Unknown);

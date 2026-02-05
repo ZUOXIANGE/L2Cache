@@ -139,7 +139,7 @@ public partial class MemoryPackSerializerTests
             // 也可接受
             return;
         }
-            
+
         // 如果没有抛出异常，这是可接受的，只要不崩溃
     }
 
@@ -229,7 +229,7 @@ public partial class MemoryPackSerializerTests
         var invalidBase64 = "invalid base64";
 
         // Act & Assert (执行 & 断言)
-        Assert.Throws<FormatException>(() => 
+        Assert.Throws<FormatException>(() =>
             _serializer.DeserializeFromString<TestData>(invalidBase64));
     }
 

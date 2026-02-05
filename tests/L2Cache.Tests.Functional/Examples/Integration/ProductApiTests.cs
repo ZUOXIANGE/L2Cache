@@ -1,8 +1,8 @@
+using System.Net.Http.Json;
+using L2Cache.Examples.Models;
 using L2Cache.Tests.Functional.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using System.Net.Http.Json;
-using L2Cache.Examples.Models;
 
 namespace L2Cache.Tests.Functional.Examples.Integration;
 

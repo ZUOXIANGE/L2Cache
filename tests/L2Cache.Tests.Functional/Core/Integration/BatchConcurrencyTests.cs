@@ -29,9 +29,9 @@ public class BatchConcurrencyTests : BaseIntegrationTest
     {
         private int _queryListCount;
         public int QueryListCount => _queryListCount;
-        
+
         // Track individual key queries if QueryDataListAsync is not used or splits calls
-        private int _querySingleCount; 
+        private int _querySingleCount;
         public int QuerySingleCount => _querySingleCount;
 
         public TestBatchCacheService(
@@ -81,7 +81,7 @@ public class BatchConcurrencyTests : BaseIntegrationTest
 
         var keys = Enumerable.Range(0, 10).Select(i => $"batch_key_{Guid.NewGuid()}_{i}").ToList();
         int concurrentClients = 10;
-        
+
         // Act
         var tasks = new List<Task<Dictionary<string, string>>>();
         for (int i = 0; i < concurrentClients; i++)
@@ -107,12 +107,12 @@ public class BatchConcurrencyTests : BaseIntegrationTest
         // Current implementation does NOT lock BatchGetOrLoadAsync, so we expect multiple queries
         _output.WriteLine($"Concurrent Batch Requests: {concurrentClients}");
         _output.WriteLine($"Actual Batch Source Queries: {cacheService.QueryListCount}");
-        
+
         // In a perfect world with batch locking, this would be 1. 
         // But currently it's likely > 1.
         // Let's verify that it works at least, and document the behavior.
         Assert.True(cacheService.QueryListCount >= 1);
-        
+
         // Verify final state in cache
         var finalCheck = await cacheService.GetAsync(keys[0]);
         Assert.Equal($"val_{keys[0]}", finalCheck);
@@ -151,7 +151,7 @@ public class BatchConcurrencyTests : BaseIntegrationTest
 
         Assert.Equal($"val_{singleKey}", singleResult);
         Assert.Equal($"val_{singleKey}", batchResult[singleKey]);
-        
+
         _output.WriteLine($"Batch Queries: {cacheService.QueryListCount}");
         _output.WriteLine($"Single Queries: {cacheService.QuerySingleCount}");
     }
@@ -180,7 +180,7 @@ public class BatchConcurrencyTests : BaseIntegrationTest
 
         // Act
         // 1. 启动批量加载 (模拟慢速 DB)
-        var loadTask = Task.Run(async () => 
+        var loadTask = Task.Run(async () =>
         {
             // 这个 BatchGetOrLoadAsync 会调用 TestBatchCacheService.QueryDataListAsync，那里有 50ms 延迟
             await cacheService.BatchGetOrLoadAsync(keyList);
@@ -196,9 +196,9 @@ public class BatchConcurrencyTests : BaseIntegrationTest
         // Assert
         // 如果 BatchGetOrLoadAsync 盲目覆盖，这里会变回 "val_{key}" (旧值)
         // 如果系统健壮，应该保留 "new_value" (或者至少最终一致)
-        
+
         var finalValue = await cacheService.GetAsync(key);
-        
+
         // 这是一个预期会失败的测试，用于验证是否存在 Race Condition
         _output.WriteLine($"Final Value: {finalValue}");
         Assert.Equal("new_value", finalValue);

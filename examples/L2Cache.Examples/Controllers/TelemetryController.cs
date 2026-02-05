@@ -25,9 +25,9 @@ public class TelemetryController : ControllerBase
     {
         // 主动触发一次检查
         var result = await _healthChecker.CheckHealthAsync();
-        
-        return result.Status == HealthStatus.Healthy 
-            ? Ok(result) 
+
+        return result.Status == HealthStatus.Healthy
+            ? Ok(result)
             : StatusCode(503, result);
     }
 
@@ -48,9 +48,9 @@ public class TelemetryController : ControllerBase
     [HttpPost("health/simulate-failure")]
     public IActionResult SimulateFailure()
     {
-        _healthChecker.AddHealthCheck("simulated_failure", ct => 
+        _healthChecker.AddHealthCheck("simulated_failure", ct =>
             Task.FromResult(new HealthCheckItemResult(HealthStatus.Unhealthy, "Simulated critical failure for testing")));
-            
+
         return Ok("Simulated failure injected. System status should now be Unhealthy.");
     }
 

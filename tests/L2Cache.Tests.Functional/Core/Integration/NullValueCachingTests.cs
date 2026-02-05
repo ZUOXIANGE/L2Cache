@@ -32,7 +32,7 @@ public class NullValueCachingTests : BaseIntegrationTest
             : base(sp, opts, logger)
         {
         }
-        
+
         public override string GetCacheName() => "null_test";
         public override string BuildCacheKey(string key) => key;
 
@@ -58,7 +58,7 @@ public class NullValueCachingTests : BaseIntegrationTest
             options.CacheNullValues = true; // Enable Null Caching
             options.NullValueExpiry = TimeSpan.FromSeconds(5);
         });
-        
+
         services.AddSingleton<TestNullCacheService>();
         var sp = services.BuildServiceProvider();
         var cacheService = sp.GetRequiredService<TestNullCacheService>();
@@ -101,7 +101,7 @@ public class NullValueCachingTests : BaseIntegrationTest
             options.Redis.ConnectionString = _fixture.ConnectionString;
             options.CacheNullValues = false; // Disable Null Caching
         });
-        
+
         services.AddSingleton<TestNullCacheService>();
         var sp = services.BuildServiceProvider();
         var cacheService = sp.GetRequiredService<TestNullCacheService>();
@@ -144,7 +144,7 @@ public class NullValueCachingTests : BaseIntegrationTest
             options.CacheNullValues = true;
             options.NullValueExpiry = TimeSpan.FromMilliseconds(500); // Short expiry
         });
-        
+
         services.AddSingleton<TestNullCacheService>();
         var sp = services.BuildServiceProvider();
         var cacheService = sp.GetRequiredService<TestNullCacheService>();
@@ -164,7 +164,7 @@ public class NullValueCachingTests : BaseIntegrationTest
 
         // Act 4: Access after expiry (Should query DB again)
         var result = await cacheService.GetOrLoadAsync(key);
-        
+
         // Assert
         Assert.Null(result);
         Assert.Equal(2, cacheService.QueryDataCount);
@@ -184,7 +184,7 @@ public class NullValueCachingTests : BaseIntegrationTest
             options.CacheNullValues = true;
             options.NullValueExpiry = TimeSpan.FromMinutes(5); // Long expiry
         });
-        
+
         services.AddSingleton<TestNullCacheService>();
         var sp = services.BuildServiceProvider();
         var cacheService = sp.GetRequiredService<TestNullCacheService>();
@@ -210,7 +210,7 @@ public class NullValueCachingTests : BaseIntegrationTest
 
         // Assert: QueryDataCount should increase because RefreshKeyAsync forces a re-check for nulls
         Assert.Equal(2, cacheService.QueryDataCount);
-        
+
         // Verify it's still cached as null (since QueryDataAsync still returns null)
         redisVal = await db.StringGetAsync(fullKey);
         Assert.Equal("@@NULL@@", redisVal.ToString());

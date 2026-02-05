@@ -1,8 +1,8 @@
-using L2Cache.Serializers.Json;
 using L2Cache.Abstractions.Serialization;
-using L2Cache.Examples.Models;
-using Microsoft.Extensions.Options;
 using L2Cache.Configuration;
+using L2Cache.Examples.Models;
+using L2Cache.Serializers.Json;
+using Microsoft.Extensions.Options;
 
 namespace L2Cache.Examples.Services;
 
@@ -54,7 +54,7 @@ public class ProductCacheService : L2CacheService<int, ProductDto>
     {
         // Simulate DB latency
         await Task.Delay(20);
-        
+
         if (id <= 0) return null;
 
         return new ProductDto
@@ -104,7 +104,7 @@ public class ProductCacheService : L2CacheService<int, ProductDto>
     protected override void OnRedisCacheSet(int key, ProductDto value, TimeSpan? expiry)
     {
         _logger.LogInformation("Product {Id} was set to Redis cache. Expiry: {Expiry}", key, expiry);
-        
+
         // Example: We could trigger a message queue event here, or update a secondary index
         // _messageQueue.Publish(new ProductUpdatedEvent(key));
     }

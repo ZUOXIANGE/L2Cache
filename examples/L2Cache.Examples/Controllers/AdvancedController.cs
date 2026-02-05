@@ -1,8 +1,8 @@
+using L2Cache.Abstractions.Telemetry;
 using L2Cache.Examples.Services;
 using L2Cache.Serializers.Json;
 using L2Cache.Serializers.MemoryPack;
 using Microsoft.AspNetCore.Mvc;
-using L2Cache.Abstractions.Telemetry;
 using StackExchange.Redis;
 
 namespace L2Cache.Examples.Controllers;
@@ -17,7 +17,7 @@ public class AdvancedController : ControllerBase
     private readonly IConnectionMultiplexer? _redis;
 
     public AdvancedController(
-        ProductCacheService productCache, 
+        ProductCacheService productCache,
         ITelemetryProvider telemetry,
         ILogger<AdvancedController> logger,
         IConnectionMultiplexer? redis = null)
@@ -56,9 +56,9 @@ public class AdvancedController : ControllerBase
         // Simple health/stats check
         var isRedisConnected = _redis?.IsConnected ?? false;
         var stats = _telemetry.GetCacheStatistics("products");
-        
-        return Ok(new 
-        { 
+
+        return Ok(new
+        {
             RedisConnected = isRedisConnected,
             Timestamp = DateTime.UtcNow,
             CacheStats = stats

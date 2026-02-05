@@ -67,7 +67,7 @@ public class CacheFlowTests : BaseIntegrationTest
             options.UseRedis = true;
             options.Redis.ConnectionString = _fixture.ConnectionString;
         });
-        
+
         // 注册测试服务
         services.AddSingleton<TestFlowCacheService>();
 
@@ -77,7 +77,7 @@ public class CacheFlowTests : BaseIntegrationTest
 
         var key = "l2_hit_key";
         var value = "l2_value";
-        
+
         // 1. 直接写入 Redis (绕过 L1)
         var redis = ConnectionMultiplexer.Connect(_fixture.ConnectionString);
         var db = redis.GetDatabase();
@@ -94,7 +94,7 @@ public class CacheFlowTests : BaseIntegrationTest
 
         // Assert
         Assert.Equal(value, result);
-        
+
         // 验证 L1 已被回填
         Assert.True(memoryCache.TryGetValue(fullKey, out var l1Value));
         Assert.Equal(value, l1Value);

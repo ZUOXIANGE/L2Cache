@@ -1,11 +1,11 @@
-using L2Cache.Extensions;
-using L2Cache.Background;
 using L2Cache.Abstractions;
+using L2Cache.Background;
+using L2Cache.Extensions;
 using L2Cache.Serializers.Json;
+using L2Cache.Tests.Functional.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using L2Cache.Tests.Functional.Fixtures;
 using StackExchange.Redis;
 using Xunit;
 
@@ -54,7 +54,7 @@ public class BackgroundRefreshTests
         // Arrange (准备)
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddConsole());
-        
+
         services.AddL2Cache(options =>
         {
             options.UseLocalCache = true;
@@ -68,11 +68,11 @@ public class BackgroundRefreshTests
         services.AddL2CacheRefresh<string, string>(sp => new TestRefreshPolicy());
 
         var provider = services.BuildServiceProvider();
-        
+
         var hostedService = provider.GetServices<IHostedService>()
             .OfType<CacheRefreshBackgroundService<string, string>>()
             .First();
-        
+
         await hostedService.StartAsync(CancellationToken.None);
 
         var cacheService = provider.GetRequiredService<ICacheService<string, string>>();
@@ -90,7 +90,7 @@ public class BackgroundRefreshTests
         var db = redis.GetDatabase();
         // 缓存名称为 "String" (基于 TValue 类型名称)
         // L2CacheService 中的Key格式为 $"{GetCacheName()}:{BuildCacheKey(key)}"
-        
+
         await db.StringSetAsync($"String:{fastKey}", serializer.SerializeToString("v2"));
         await db.StringSetAsync($"String:{slowKey}", serializer.SerializeToString("v2"));
 
@@ -118,7 +118,7 @@ public class BackgroundRefreshTests
         // Arrange (准备)
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddConsole());
-        
+
         services.AddL2Cache(options =>
         {
             options.UseLocalCache = true;
@@ -131,12 +131,12 @@ public class BackgroundRefreshTests
         services.AddL2CacheRefresh<string, string>();
 
         var provider = services.BuildServiceProvider();
-        
+
         // 手动启动后台服务
         var hostedService = provider.GetServices<IHostedService>()
             .OfType<CacheRefreshBackgroundService<string, string>>()
             .First();
-        
+
         await hostedService.StartAsync(CancellationToken.None);
 
         var cacheService = provider.GetRequiredService<ICacheService<string, string>>();
@@ -164,7 +164,7 @@ public class BackgroundRefreshTests
         // 4. 再次检查 L1
         // 如果刷新工作正常，GetAsync (读取 L1) 应该返回新值
         var l1ValueNew = await cacheService.GetAsync(key);
-        
+
         // Assert (断言)
         Assert.Equal(value2, l1ValueNew);
 

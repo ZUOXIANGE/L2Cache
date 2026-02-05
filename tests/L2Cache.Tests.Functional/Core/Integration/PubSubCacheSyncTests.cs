@@ -1,4 +1,5 @@
 using System.Reflection;
+using FluentAssertions;
 using L2Cache.Abstractions;
 using L2Cache.Configuration;
 using L2Cache.Tests.Functional.Fixtures;
@@ -6,7 +7,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using FluentAssertions;
 using Xunit;
 
 namespace L2Cache.Tests.Functional.Core.Integration;
@@ -56,7 +56,7 @@ public class PubSubCacheSyncTests : IClassFixture<RedisTestFixture>
         await cacheA.PutAsync(key, value2);
 
         // 4. Wait for Pub/Sub propagation
-        await Task.Delay(1000); 
+        await Task.Delay(1000);
 
         // 5. Node B reads again
         var valB2 = await cacheB.GetAsync(key);
@@ -68,7 +68,7 @@ public class PubSubCacheSyncTests : IClassFixture<RedisTestFixture>
     private static void ResetSubscriptionFlag()
     {
         var type = typeof(L2CacheService<string, string>);
-        var field = type.GetField("_isSubscribed", BindingFlags.Static | BindingFlags.NonPublic);
+        var field = type.GetField("IsSubscribed", BindingFlags.Static | BindingFlags.NonPublic);
         if (field != null)
         {
             field.SetValue(null, false);
@@ -78,7 +78,7 @@ public class PubSubCacheSyncTests : IClassFixture<RedisTestFixture>
     private ServiceProvider CreateServiceProvider(string nodeName)
     {
         var services = new ServiceCollection();
-        
+
         // Logging
         services.AddLogging(builder => builder.AddConsole());
 
@@ -88,7 +88,7 @@ public class PubSubCacheSyncTests : IClassFixture<RedisTestFixture>
             options.UseLocalCache = true;
             options.UseRedis = true;
             options.Redis.ConnectionString = _redisFixture.ConnectionString;
-            
+
             // Enable Pub/Sub
             options.PubSub.Enabled = true;
             options.PubSub.ChannelPrefix = "test-sync";

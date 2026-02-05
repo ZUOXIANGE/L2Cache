@@ -93,8 +93,8 @@ public class CacheStatistics
     /// <summary>
     /// 命中率
     /// </summary>
-    public double HitRate => (HitCount + MissCount) > 0 
-        ? (double)HitCount / (HitCount + MissCount) 
+    public double HitRate => (HitCount + MissCount) > 0
+        ? (double)HitCount / (HitCount + MissCount)
         : 0;
 
     /// <summary>

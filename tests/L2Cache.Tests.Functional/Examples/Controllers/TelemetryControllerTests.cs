@@ -1,10 +1,10 @@
-using L2Cache.Examples.Controllers;
 using L2Cache.Abstractions.Telemetry;
+using L2Cache.Examples.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
-using HealthStatus = L2Cache.Abstractions.Telemetry.HealthStatus;
 using HealthCheckResult = L2Cache.Abstractions.Telemetry.HealthCheckResult;
+using HealthStatus = L2Cache.Abstractions.Telemetry.HealthStatus;
 
 namespace L2Cache.Tests.Functional.Examples.Controllers;
 

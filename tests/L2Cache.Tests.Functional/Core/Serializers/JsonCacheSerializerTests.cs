@@ -1,8 +1,8 @@
-using FluentAssertions;
-using L2Cache.Serializers.Json;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using FluentAssertions;
+using L2Cache.Serializers.Json;
 using Xunit;
 
 namespace L2Cache.Tests.Functional.Serializers;
@@ -127,7 +127,7 @@ public class JsonCacheSerializerTests
         var invalidData = Encoding.UTF8.GetBytes("invalid json");
 
         // Act & Assert (执行 & 断言)
-        Assert.Throws<InvalidOperationException>(() => 
+        Assert.Throws<InvalidOperationException>(() =>
             _serializer.Deserialize<TestData>(invalidData));
     }
 
@@ -216,7 +216,7 @@ public class JsonCacheSerializerTests
         var invalidJson = "invalid json";
 
         // Act & Assert (执行 & 断言)
-        Assert.Throws<InvalidOperationException>(() => 
+        Assert.Throws<InvalidOperationException>(() =>
             _serializer.DeserializeFromString<TestData>(invalidJson));
     }
 

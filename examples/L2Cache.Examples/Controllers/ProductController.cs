@@ -26,7 +26,7 @@ public class ProductController : ControllerBase
     {
         // Cache Aside pattern handled by the service
         var product = await _productCache.GetOrLoadAsync(id, TimeSpan.FromMinutes(10));
-        
+
         if (product == null) return NotFound($"Product {id} not found");
         return Ok(product);
     }
@@ -42,7 +42,7 @@ public class ProductController : ControllerBase
 
         // Service handles DB update and cache invalidation/update
         await _productCache.UpdateAsync(id, product);
-        
+
         return Ok(new { message = "Product updated", id });
     }
 
@@ -66,7 +66,7 @@ public class ProductController : ControllerBase
         var products = await _productCache.BatchGetOrLoadAsync(ids, TimeSpan.FromMinutes(10));
         return Ok(products);
     }
-    
+
     /// <summary>
     /// Reload product from source.
     /// Forces a refresh from DB.

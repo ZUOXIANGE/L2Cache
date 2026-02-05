@@ -43,7 +43,7 @@ public class CustomUserCacheService : AbstractCacheService<int, UserDto>
     protected override async Task<UserDto?> QueryDataAsync(int key)
     {
         _logger.LogInformation("Fetching user {Key} from simulated database...", key);
-        
+
         // 模拟数据库查询延迟
         await Task.Delay(50);
 

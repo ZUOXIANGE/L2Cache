@@ -90,7 +90,7 @@ public class LockPerformanceTests : BaseIntegrationTest
         services.AddSingleton<PerfCacheService>();
         var sp = services.BuildServiceProvider();
         var cacheService = sp.GetRequiredService<PerfCacheService>();
-        
+
         cacheService.DbDelayMs = dbDelayMs;
         cacheService.Reset();
 
@@ -125,7 +125,7 @@ public class LockPerformanceTests : BaseIntegrationTest
             SuccessCount = durations.Length
         };
     }
-    
+
     private async Task<PerfResult> RunPutTestAsync(bool enableLocks, int concurrency, int iterationsPerThread)
     {
         var services = new ServiceCollection();
@@ -201,7 +201,7 @@ public class LockPerformanceTests : BaseIntegrationTest
 
         _output.WriteLine("--------------------------------------------------");
         _output.WriteLine($"DB Load Reduction: {(1 - (double)withLockResult.SourceQueries / noLockResult.SourceQueries) * 100:F1}%");
-        
+
         // Assertions
         // 开启锁后，回源次数应显著减少 (理想情况是 1，无锁情况可能是 concurrency)
         Assert.True(withLockResult.SourceQueries < noLockResult.SourceQueries, "开启锁应减少回源次数");
@@ -213,7 +213,7 @@ public class LockPerformanceTests : BaseIntegrationTest
     {
         int concurrency = 10;
         int iterations = 50;
-        
+
         _output.WriteLine($"=== PutAsync Performance Comparison (Concurrency: {concurrency}, Iterations: {iterations}) ===");
 
         // 1. Run Without Locks

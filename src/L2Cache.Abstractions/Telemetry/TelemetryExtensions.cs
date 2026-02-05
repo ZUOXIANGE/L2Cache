@@ -19,7 +19,7 @@ public static class TelemetryExtensions
     {
         telemetry.RecordCacheOperation(cacheName, CacheOperation.Set, key, cacheLevel, null, responseTime, dataSize);
     }
-    
+
     public static void RecordCacheEvict(this ITelemetryProvider telemetry, string cacheName, CacheLevel cacheLevel, string key, TimeSpan responseTime)
     {
         telemetry.RecordCacheOperation(cacheName, CacheOperation.Evict, key, cacheLevel, null, responseTime);

@@ -20,7 +20,7 @@ internal sealed class AsyncKeyedLocker<TKey> where TKey : notnull
     public async Task<IDisposable> LockAsync(TKey key, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
         var semaphore = _semaphores.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-        
+
         var entered = await semaphore.WaitAsync(timeout, cancellationToken);
         if (!entered)
         {

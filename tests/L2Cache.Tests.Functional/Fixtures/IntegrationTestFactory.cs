@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using StackExchange.Redis;
 using Moq;
+using StackExchange.Redis;
 
 namespace L2Cache.Tests.Functional.Fixtures;
 
@@ -37,54 +37,62 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>
                 // 如果 Docker/Redis 不可用，使用内存中的 Mock 对象模拟 Redis 行为
                 var mockDatabase = new Mock<IDatabase>();
                 var memoryStore = new Dictionary<string, (string Value, DateTime? Expiry)>();
-                
+
                 // 模拟 StringGetAsync
                 mockDatabase.Setup(db => db.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-                    .ReturnsAsync((RedisKey key, CommandFlags flags) => {
-                         if (memoryStore.TryGetValue(key.ToString(), out var val)) {
-                             if (val.Expiry.HasValue && val.Expiry < DateTime.UtcNow) {
-                                 memoryStore.Remove(key.ToString());
-                                 return RedisValue.Null;
-                             }
-                             return val.Value;
-                         }
-                         return RedisValue.Null;
+                    .ReturnsAsync((RedisKey key, CommandFlags flags) =>
+                    {
+                        if (memoryStore.TryGetValue(key.ToString(), out var val))
+                        {
+                            if (val.Expiry.HasValue && val.Expiry < DateTime.UtcNow)
+                            {
+                                memoryStore.Remove(key.ToString());
+                                return RedisValue.Null;
+                            }
+                            return val.Value;
+                        }
+                        return RedisValue.Null;
                     });
 
                 // 模拟 StringSetAsync
                 mockDatabase.Setup(db => db.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
-                    .ReturnsAsync((RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags) => {
+                    .ReturnsAsync((RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags) =>
+                    {
                         var k = key.ToString();
                         var exists = memoryStore.ContainsKey(k);
                         if (when == When.NotExists && exists) return false;
                         if (when == When.Exists && !exists) return false;
-                        
+
                         DateTime? exp = expiry.HasValue ? DateTime.UtcNow.Add(expiry.Value) : null;
                         memoryStore[k] = (value.ToString(), exp);
                         return true;
                     });
-                    
+
                 // 模拟 KeyDeleteAsync
                 mockDatabase.Setup(db => db.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-                    .ReturnsAsync((RedisKey key, CommandFlags flags) => {
-                         return memoryStore.Remove(key.ToString());
-                    });
-                    
-                 // 模拟 KeyExistsAsync
-                 mockDatabase.Setup(db => db.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-                    .ReturnsAsync((RedisKey key, CommandFlags flags) => {
-                         if (memoryStore.TryGetValue(key.ToString(), out var val)) {
-                             if (val.Expiry.HasValue && val.Expiry < DateTime.UtcNow) {
-                                 memoryStore.Remove(key.ToString());
-                                 return false;
-                             }
-                             return true;
-                         }
-                         return false;
+                    .ReturnsAsync((RedisKey key, CommandFlags flags) =>
+                    {
+                        return memoryStore.Remove(key.ToString());
                     });
 
+                // 模拟 KeyExistsAsync
+                mockDatabase.Setup(db => db.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+                   .ReturnsAsync((RedisKey key, CommandFlags flags) =>
+                   {
+                       if (memoryStore.TryGetValue(key.ToString(), out var val))
+                       {
+                           if (val.Expiry.HasValue && val.Expiry < DateTime.UtcNow)
+                           {
+                               memoryStore.Remove(key.ToString());
+                               return false;
+                           }
+                           return true;
+                       }
+                       return false;
+                   });
+
                 services.AddSingleton<IDatabase>(mockDatabase.Object);
-                
+
                 var mockMultiplexer = new Mock<IConnectionMultiplexer>();
                 mockMultiplexer.Setup(m => m.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(mockDatabase.Object);
                 services.AddSingleton<IConnectionMultiplexer>(mockMultiplexer.Object);

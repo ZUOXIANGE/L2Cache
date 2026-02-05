@@ -1,10 +1,10 @@
-using L2Cache.Configuration;
 using L2Cache.Abstractions;
+using L2Cache.Configuration;
 using L2Cache.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace L2Cache.Background;
 
@@ -71,7 +71,7 @@ public class CacheRefreshBackgroundService<TKey, TValue> : BackgroundService whe
 
                 try
                 {
-                    await refreshableCache.RefreshKeyAsync(key); 
+                    await refreshableCache.RefreshKeyAsync(key);
                 }
                 catch (Exception ex)
                 {

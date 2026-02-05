@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 using L2Cache.Abstractions;
 using L2Cache.Abstractions.Telemetry;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace L2Cache.Telemetry;
@@ -19,7 +19,7 @@ public class DefaultHealthChecker : IHealthChecker
     private readonly Timer _checkTimer;
     private readonly ConcurrentDictionary<string, Func<CancellationToken, Task<HealthCheckItemResult>>> _healthChecks;
     private readonly ConcurrentQueue<HealthCheckResult> _healthHistory;
-        
+
     private volatile bool _isMonitoring;
     private volatile bool _disposed;
     private volatile HealthStatus _currentStatus = HealthStatus.Unknown;
@@ -31,7 +31,7 @@ public class DefaultHealthChecker : IHealthChecker
     /// </summary>
     public DefaultHealthChecker(
         IServiceProvider serviceProvider,
-        HealthCheckerOptions? options = null, 
+        HealthCheckerOptions? options = null,
         ILogger<DefaultHealthChecker>? logger = null)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
@@ -118,12 +118,12 @@ public class DefaultHealthChecker : IHealthChecker
             }
 
             // 计算总体状态：只要有一个不健康，整体就不健康
-            result.Status = results.Any(x => x.Value.Status != HealthStatus.Healthy) 
-                ? HealthStatus.Unhealthy 
+            result.Status = results.Any(x => x.Value.Status != HealthStatus.Healthy)
+                ? HealthStatus.Unhealthy
                 : HealthStatus.Healthy;
-            
-            result.Description = result.Status == HealthStatus.Healthy 
-                ? "系统健康" 
+
+            result.Description = result.Status == HealthStatus.Healthy
+                ? "系统健康"
                 : $"系统异常: {string.Join(", ", results.Where(r => r.Value.Status != HealthStatus.Healthy).Select(r => r.Key))}";
 
             // 状态变化通知
@@ -196,24 +196,24 @@ public class DefaultHealthChecker : IHealthChecker
     }
 
     private async Task<KeyValuePair<string, HealthCheckItemResult>> ExecuteHealthCheckAsync(
-        string name, 
-        Func<CancellationToken, Task<HealthCheckItemResult>> checker, 
+        string name,
+        Func<CancellationToken, Task<HealthCheckItemResult>> checker,
         CancellationToken cancellationToken)
     {
         try
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(_options.CheckTimeout);
-            
+
             var startTime = Stopwatch.GetTimestamp();
             var result = await checker(cts.Token);
             result.Duration = Stopwatch.GetElapsedTime(startTime);
-            
+
             return new KeyValuePair<string, HealthCheckItemResult>(name, result);
         }
         catch (Exception ex)
         {
-            return new KeyValuePair<string, HealthCheckItemResult>(name, 
+            return new KeyValuePair<string, HealthCheckItemResult>(name,
                 new HealthCheckItemResult(HealthStatus.Unhealthy, $"检查异常: {ex.Message}") { Exception = ex });
         }
     }

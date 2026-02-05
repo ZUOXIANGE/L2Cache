@@ -76,14 +76,14 @@ public class ResilienceTests : IAsyncLifetime
 
         // 3. 尝试读取 (如果L1存在，应从L1读取)
         var result2 = await cacheService.GetAsync(key);
-        Assert.Equal(value, result2); 
+        Assert.Equal(value, result2);
 
         // 4. 尝试写入 (应该失败或记录错误，但不应导致应用崩溃)
         // 我们期望 L2Cache 内部处理 Redis 异常 (记录日志)，并尽可能继续 (例如只写 L1)，
         // 或者根据配置抛出异常。
         // 假设默认行为：尝试写入 Redis 并失败。
         // 验证不会导致测试进程崩溃。
-        try 
+        try
         {
             await cacheService.PutAsync("new_key", "new_value");
         }
@@ -91,7 +91,7 @@ public class ResilienceTests : IAsyncLifetime
         {
             // 在此处捕获异常是可接受的
         }
-        
+
         // 5. 重启 Redis
         await _redisContainer.StartAsync();
 
@@ -100,7 +100,7 @@ public class ResilienceTests : IAsyncLifetime
         // 如果我们想测试自动重连，需要确保端口保持不变 (例如绑定固定宿主端口)。
         CleanupApp();
         InitializeApp();
-        
+
         cacheService = _scope!.ServiceProvider.GetRequiredService<ICacheService<string, string>>();
 
         // 6. 验证恢复

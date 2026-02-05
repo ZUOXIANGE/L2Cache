@@ -41,7 +41,7 @@ public class CacheConcurrentWriteTests
             options.UseRedis = true;
             options.Redis.ConnectionString = _fixture.ConnectionString;
         });
-        
+
         // 使用 ICacheService<string, string>
         var sp = services.BuildServiceProvider();
         var cacheService = sp.GetRequiredService<ICacheService<string, string>>();
@@ -52,7 +52,7 @@ public class CacheConcurrentWriteTests
         var key = $"concurrent_write_{Guid.NewGuid()}";
         int threadCount = 10;
         int iterations = 100;
-        
+
         // Act
         var tasks = new List<Task>();
         for (int i = 0; i < threadCount; i++)
@@ -77,7 +77,7 @@ public class CacheConcurrentWriteTests
         var l2ValueRedis = await db.StringGetAsync($"String:{key}");
         // 注意：L2CacheService 默认使用 JsonCacheSerializer，字符串会被序列化为 "value" (带引号)
         // 我们直接用 cacheService.GetAsync 获取 L2 值（它会处理反序列化）
-        
+
         // 为了避免 GetAsync 自身的 L1 回填逻辑干扰验证，我们直接分别检查底层存储
         // 1. 检查 Redis (L2)
         string? l2Value = null;
@@ -85,7 +85,7 @@ public class CacheConcurrentWriteTests
         {
             // 手动反序列化，或者简单去掉引号（如果是简单字符串）
             // 这里为了准确，我们信任 Redis 中的原始值，并在比较时考虑序列化格式
-            l2Value = l2ValueRedis.ToString().Trim('"'); 
+            l2Value = l2ValueRedis.ToString().Trim('"');
         }
 
         // 2. 检查 MemoryCache (L1)
@@ -103,11 +103,11 @@ public class CacheConcurrentWriteTests
         // 然而，用户要求的是 "测试并发修改场景"，我们可以把这个测试写成 "探索性测试"，
         // 或者如果当前代码确实不支持强一致性，我们可以用 Assert.True(l1Value == l2Value || l1Value != l2Value) 只是为了打印结果，
         // 或者更严格地：如果我们要证明它是脆弱的，我们可以 Assert.NotEqual(l1Value, l2Value) ? 
-        
+
         // 更好的做法是：尝试验证最终一致性，或者至少它们都不为空。
         Assert.True(l2ValueRedis.HasValue, "L2 should have a value");
         Assert.True(l1Exists, "L1 should have a value");
-        
+
         if (l1Value != l2Value)
         {
             _output.WriteLine("!!! Race Condition Detected: L1 and L2 are inconsistent !!!");
@@ -142,7 +142,7 @@ public class CacheConcurrentWriteTests
 
         var key = $"concurrent_evict_{Guid.NewGuid()}";
         var fullKey = $"String:{key}";
-        
+
         // Act
         // 一个任务不断写入，一个任务不断删除
         var cts = new CancellationTokenSource();
@@ -173,7 +173,7 @@ public class CacheConcurrentWriteTests
         // 停止后，检查状态。
         // 僵尸缓存场景：Evict 先删了 L1，然后 Put 写入了 L2，然后 Put 写入了 L1，然后 Evict 删除了 L2。
         // 结果：L2 为空，L1 有值。
-        
+
         var l2Exists = await db.KeyExistsAsync(fullKey);
         var l1Exists = localCache.TryGetValue(fullKey, out string? l1Value);
 

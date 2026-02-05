@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using Microsoft.Extensions.Logging;
 using L2Cache.Abstractions.Telemetry;
+using Microsoft.Extensions.Logging;
 
 namespace L2Cache.Telemetry;
 
@@ -163,10 +163,10 @@ public class DefaultTelemetryProvider : ITelemetryProvider
             if (activity != null)
             {
                 var eventTags = new ActivityTagsCollection();
-                    
+
                 // 添加自定义标签
                 AddCustomTagsToCollection(eventTags);
-                    
+
                 // 添加传入的标签
                 if (tags != null)
                 {
@@ -238,7 +238,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
         try
         {
             var tagList = CreateTagList(tags);
-                
+
             // 这里可以根据名称选择合适的计数器
             // 为了简化，我们使用通用的请求计数器
             _requestsCounter.Add(value, tagList);
@@ -279,7 +279,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
         try
         {
             var tagList = CreateTagList(tags);
-                
+
             // 根据名称选择合适的仪表
             if (name.Contains("item_count"))
             {
@@ -371,7 +371,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
             // 添加缓存键（如果启用且不超过最大长度）
             if (_options.RecordCacheKeys && !string.IsNullOrEmpty(key))
             {
-                var recordedKey = key.Length > _options.MaxKeyLength 
+                var recordedKey = key.Length > _options.MaxKeyLength
                     ? string.Concat(key.AsSpan(0, _options.MaxKeyLength), "...")
                     : key;
                 operationTags.Add(new(TelemetryConstants.TagNames.KeyPattern, recordedKey));
@@ -380,7 +380,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
             // 添加结果标签
             if (hit.HasValue)
             {
-                operationTags.Add(new(TelemetryConstants.TagNames.Result, 
+                operationTags.Add(new(TelemetryConstants.TagNames.Result,
                     hit.Value ? TelemetryConstants.TagValues.Hit : TelemetryConstants.TagValues.Miss));
             }
 
@@ -434,7 +434,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
     /// <inheritdoc />
     public void RecordBatchOperation(string cacheName, string operation, int keyCount, TimeSpan responseTime, int successCount)
     {
-         if (!string.IsNullOrEmpty(cacheName))
+        if (!string.IsNullOrEmpty(cacheName))
         {
             var stats = GetOrCreateStatistics(cacheName);
             lock (stats.LockObject)
@@ -451,7 +451,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
     /// <inheritdoc />
     public void RecordCacheError(string cacheName, string operation, Exception exception, TimeSpan responseTime)
     {
-         if (!string.IsNullOrEmpty(cacheName))
+        if (!string.IsNullOrEmpty(cacheName))
         {
             var stats = GetOrCreateStatistics(cacheName);
             lock (stats.LockObject)
@@ -462,7 +462,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
                 stats.LastUpdateTime = DateTime.UtcNow;
             }
         }
-        
+
         RecordException(exception, new Dictionary<string, object>
         {
             { TelemetryConstants.TagNames.CacheName, cacheName },
@@ -473,7 +473,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
     /// <inheritdoc />
     public void RecordDataSourceLoad(string cacheName, string key, TimeSpan responseTime, bool success)
     {
-         if (!string.IsNullOrEmpty(cacheName))
+        if (!string.IsNullOrEmpty(cacheName))
         {
             var stats = GetOrCreateStatistics(cacheName);
             lock (stats.LockObject)
@@ -665,7 +665,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
     private TagList CreateTagList(IEnumerable<KeyValuePair<string, object>>? tags)
     {
         var tagList = new TagList();
-        
+
         if (_options.CustomTags != null)
         {
             foreach (var tag in _options.CustomTags)
@@ -693,7 +693,7 @@ public class DefaultTelemetryProvider : ITelemetryProvider
         _disposed = true;
         _activitySource?.Dispose();
         _meter?.Dispose();
-        
+
         _logger.LogInformation("遥测提供程序已释放");
         GC.SuppressFinalize(this);
     }

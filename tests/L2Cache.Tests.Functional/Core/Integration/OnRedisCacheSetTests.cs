@@ -70,7 +70,7 @@ public class OnRedisCacheSetTests
             options.UseRedis = true;
             options.Redis.ConnectionString = _redisFixture.ConnectionString;
         });
-        
+
         // 注册测试服务
         services.AddSingleton<TestCacheServiceWithHook>();
 
