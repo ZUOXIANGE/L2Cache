@@ -18,11 +18,7 @@ public class ResilienceTests : IAsyncDisposable
     [Before(Test)]
     public async Task InitializeAsync()
     {
-#pragma warning disable CS0618 // Type or member is obsolete
-        _redisContainer = new RedisBuilder()
-            .WithImage("redis:7.0")
-            .Build();
-#pragma warning restore CS0618 // Type or member is obsolete
+        _redisContainer = new RedisBuilder(new DotNet.Testcontainers.Images.DockerImage("redis:8.0")).Build();
         await _redisContainer.StartAsync();
         InitializeApp();
     }
