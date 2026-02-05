@@ -1,11 +1,12 @@
 using BenchmarkDotNet.Attributes;
 using L2Cache.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace L2Cache.Benchmarks;
 
 [MemoryDiagnoser]
-public class AdvancedBenchmarks
+public class AdvancedBenchmarks : IDisposable
 {
     private ICacheService<string, object> _cache = null!;
     private IServiceProvider _serviceProvider = null!;
@@ -13,15 +14,22 @@ public class AdvancedBenchmarks
     private string _largeObjectKey = null!;
     private List<string> _hitTestKeys = null!;
 
+    private RedisContainer _redisContainer = null!;
+
     [GlobalSetup]
     public async Task Setup()
     {
+        // 启动 Redis 容器
+        _redisContainer = new RedisContainer();
+        _redisContainer.Start();
+
         var services = new ServiceCollection();
+        services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
         services.AddL2Cache(options =>
         {
             options.UseLocalCache = true;
             options.UseRedis = true;
-            options.Redis.ConnectionString = "localhost:6379";
+            options.Redis.ConnectionString = _redisContainer.ConnectionString;
             options.Redis.Database = 0;
             options.Telemetry.EnableMetrics = true;
         });
@@ -29,13 +37,13 @@ public class AdvancedBenchmarks
         _serviceProvider = services.BuildServiceProvider();
         _cache = _serviceProvider.GetRequiredService<ICacheService<string, object>>();
 
-        // Setup Large Data
+        // 设置大数据对象
         _largeData = new byte[1024 * 1024]; // 1MB
         new Random(42).NextBytes(_largeData);
         _largeObjectKey = "large_object_fixed";
         await _cache.PutAsync(_largeObjectKey, _largeData);
 
-        // Setup Hit Test Keys
+        // 设置命中测试用的 Keys
         _hitTestKeys = [];
         for (int i = 0; i < 1000; i++)
         {
@@ -43,6 +51,18 @@ public class AdvancedBenchmarks
             _hitTestKeys.Add(key);
             await _cache.PutAsync(key, new { Index = i });
         }
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        _redisContainer?.Dispose();
+    }
+
+    public void Dispose()
+    {
+        Cleanup();
+        GC.SuppressFinalize(this);
     }
 
     [Benchmark]

@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using L2Cache.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace L2Cache.Benchmarks;
 
@@ -15,6 +16,7 @@ public class BasicBenchmarks
     public async Task Setup()
     {
         var services = new ServiceCollection();
+        services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
         services.AddL2Cache(options =>
         {
             options.UseLocalCache = true;
