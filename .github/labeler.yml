@@ -1,0 +1,49 @@
+# Documentation
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
+
+# Source code
+source:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**/*.cs"
+
+# Tests
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**/*.cs"
+
+# Benchmarks
+benchmarks:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "benchmarks/**/*.cs"
+          - "benchmarks/**"
+
+# Examples
+examples:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "examples/**/*.cs"
+          - "examples/**"
+
+# Build & CI
+build:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.props"
+          - "*.slnx"
+          - "**/*.csproj"
+          - ".github/**"
+          - "docker/**"
+
+# Dependencies
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "Directory.Packages.props"
+          - ".github/dependabot.yml"
