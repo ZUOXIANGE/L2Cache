@@ -56,7 +56,7 @@ jobs:
       run: dotnet build L2Cache.slnx --configuration Release --no-restore -p:Version=${{ env.VERSION }}
 
     - name: Test
-      run: dotnet test L2Cache.slnx --configuration Release --no-build --verbosity normal
+      run: dotnet test --solution L2Cache.slnx --configuration Release --no-build --verbosity normal
 
     - name: Pack NuGet Packages
       run: |
