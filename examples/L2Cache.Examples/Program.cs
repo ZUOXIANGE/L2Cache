@@ -1,11 +1,11 @@
 using L2Cache;
 using L2Cache.Examples.Services;
 using L2Cache.Extensions;
-using Microsoft.OpenApi;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,24 +87,17 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
-// Swagger
+// OpenAPI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddOpenApi("v1", options =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
-        Title = "L2Cache Examples API",
-        Version = "v1",
-        Description = "Comprehensive examples for L2Cache usage including Basics, Entity Caching, and Advanced Scenarios."
+        document.Info.Title = "L2Cache Examples API";
+        document.Info.Version = "v1";
+        document.Info.Description = "Comprehensive examples for L2Cache usage including Basics, Entity Caching, and Advanced Scenarios.";
+        return Task.CompletedTask;
     });
-
-    // XML Comments
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
 });
 
 var app = builder.Build();
@@ -112,11 +105,12 @@ var app = builder.Build();
 // Configure Pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "L2Cache Examples API V1");
-        c.RoutePrefix = string.Empty; // Swagger at root
+        options.WithTitle("L2Cache Examples API");
+        options.WithTheme(ScalarTheme.Moon);
+        options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
 }
 
@@ -126,15 +120,15 @@ app.MapControllers();
 // Health Check
 app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Timestamp = DateTime.UtcNow }));
 
-// Redirect root to Swagger
-app.MapGet("/", () => Results.Redirect("/swagger"));
+// Redirect root to Scalar
+app.MapGet("/", () => Results.Redirect("/scalar/v1"));
 
 // Startup Log
 app.Lifetime.ApplicationStarted.Register(() =>
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
     logger.LogInformation("L2Cache Examples API Started");
-    logger.LogInformation("Swagger UI: http://localhost:5000/swagger");
+    logger.LogInformation("Scalar UI: http://localhost:5000/scalar/v1");
     logger.LogInformation("Basics: http://localhost:5000/api/basics/test-key");
     logger.LogInformation("Products: http://localhost:5000/api/product/1001");
 });
