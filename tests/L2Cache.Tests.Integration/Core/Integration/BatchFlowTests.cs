@@ -96,7 +96,7 @@ public class BatchFlowTests
         // KeyDB should be backfilled to L1 and L2
         await Assert.That(memoryCache.TryGetValue(fullKeyDB, out var valDB)).IsTrue();
         await Assert.That(valDB).IsEqualTo($"db_{keyDB}");
-        
+
         var redisValDB = await db.StringGetAsync(fullKeyDB);
         await Assert.That(redisValDB.HasValue).IsTrue();
         await Assert.That(redisValDB.ToString()).Contains($"db_{keyDB}");

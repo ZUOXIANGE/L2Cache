@@ -123,7 +123,7 @@ public class CacheFlowTests
 
         // Assert
         await Assert.That(result).IsEqualTo($"db_{key}");
-        
+
         // Verify L1
         await Assert.That(memoryCache.TryGetValue(fullKey, out var l1Value)).IsTrue();
         await Assert.That(l1Value).IsEqualTo($"db_{key}");
@@ -201,7 +201,7 @@ public class CacheFlowTests
         var l1Obj = l1Value as TestComplexObject;
         await Assert.That(l1Obj).IsNotNull();
         await Assert.That(l1Obj!.Name).IsEqualTo($"name_{key}");
-        
+
         // Verify L2
         var redis = ConnectionMultiplexer.Connect(GlobalTestSetup.RedisConnectionString);
         var db = redis.GetDatabase();
@@ -244,7 +244,7 @@ public class CacheFlowTests
 
         // Verify L1 expired
         await Assert.That(memoryCache.TryGetValue(fullKey, out _)).IsFalse();
-        
+
         // Verify L2 expired
         var redis = ConnectionMultiplexer.Connect(GlobalTestSetup.RedisConnectionString);
         var db = redis.GetDatabase();
@@ -293,7 +293,7 @@ public class CacheFlowTests
         var key = "error_key";
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => 
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
             await cacheService.GetOrLoadAsync(key);
         });
