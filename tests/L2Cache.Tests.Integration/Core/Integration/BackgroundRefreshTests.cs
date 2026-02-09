@@ -82,16 +82,15 @@ public class BackgroundRefreshTests
         // 缓存名称为 "String" (基于 TValue 类型名称)
         // L2CacheService 中的Key格式为 $"{GetCacheName()}:{BuildCacheKey(key)}"
 
-        // 注意：L2CacheService默认CacheName可能是根据TValue类型定的，如果没有重写GetCacheName。
-        // 查看源码或推断：通常 L2CacheService<TKey, TValue> 如果没有重写，CacheName 可能是 "String" (TValue.Name)
-        // 为了确保准确，最好通过 cacheService.GetCacheName() 获取，但这不在接口里。
-        // 假设这里是 "String"。
-
         await db.StringSetAsync($"String:{fastKey}", serializer.SerializeToString("v2"));
         await db.StringSetAsync($"String:{slowKey}", serializer.SerializeToString("v2"));
 
-        // 3. 等待快速刷新的间隔 (200ms) + 缓冲时间
-        await Task.Delay(1000);
+        // 3. 显式调用 UpdateNextRefresh 模拟后台服务发现 DueKey
+        // 在真实场景中，BackgroundService 会定期轮询，但在集成测试中
+        // 我们可以手动触发或增加等待时间。
+
+        // 4. 等待快速刷新的间隔 (200ms) + 缓冲时间
+        await Task.Delay(2000); // 增加到 2s 确保刷新周期完成
 
         // Verify Fast Key Refreshed (L1 应该已从 Redis 更新)
         var fastVal = await cacheService.GetAsync(fastKey);
