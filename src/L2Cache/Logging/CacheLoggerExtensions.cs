@@ -52,7 +52,10 @@ public static partial class CacheLoggerExtensions
     public static void LogCacheSet(this ILogger logger, string cacheName, string cacheLevel, string key,
         TimeSpan responseTime, TimeSpan? expiry = null, long dataSize = 0)
     {
-        LogCacheSetInternal(logger, cacheName, cacheLevel, key, responseTime.TotalMilliseconds, expiry?.ToString() ?? "None", dataSize);
+        if (logger.IsEnabled(LogLevel.Debug))
+        {
+            LogCacheSetInternal(logger, cacheName, cacheLevel, key, responseTime.TotalMilliseconds, expiry?.ToString() ?? "None", dataSize);
+        }
     }
 
     [LoggerMessage(EventId = 1003, Level = LogLevel.Debug, Message = "Cache set: {cacheName} [{cacheLevel}] Key: {key}, ResponseTime: {responseTimeMs}ms, Expiry: {expiryStr}, DataSize: {dataSize}")]
@@ -84,7 +87,10 @@ public static partial class CacheLoggerExtensions
     /// <param name="expiry">过期时间</param>
     public static void LogCacheReload(this ILogger logger, string cacheName, string key, TimeSpan responseTime, TimeSpan? expiry = null)
     {
-        LogCacheReloadInternal(logger, cacheName, key, responseTime.TotalMilliseconds, expiry?.ToString() ?? "None");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            LogCacheReloadInternal(logger, cacheName, key, responseTime.TotalMilliseconds, expiry?.ToString() ?? "None");
+        }
     }
 
     [LoggerMessage(EventId = 1008, Level = LogLevel.Information, Message = "Cache reload: {cacheName} Key: {key}, ResponseTime: {responseTimeMs}ms, Expiry: {expiryStr}")]
@@ -194,4 +200,18 @@ public static partial class CacheLoggerExtensions
 
     [LoggerMessage(EventId = 1012, Level = LogLevel.Warning, Message = "Cache health check failed: {cacheName}, ResponseTime: {responseTimeMs}ms, Details: {details}")]
     private static partial void LogCacheHealthCheckFailedInternal(this ILogger logger, string cacheName, double responseTimeMs, string details);
+
+    /// <summary>
+    /// 记录因锁争用跳过L1更新的日志
+    /// </summary>
+    /// <param name="logger">日志记录器</param>
+    /// <param name="cacheName">缓存名称</param>
+    /// <param name="key">缓存键</param>
+    public static void LogL1UpdateSkipped(this ILogger logger, string cacheName, string key)
+    {
+        LogL1UpdateSkippedInternal(logger, cacheName, key);
+    }
+
+    [LoggerMessage(EventId = 1013, Level = LogLevel.Debug, Message = "Skipped L1 update for {cacheName} Key: {key} due to lock contention.")]
+    private static partial void LogL1UpdateSkippedInternal(this ILogger logger, string cacheName, string key);
 }

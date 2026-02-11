@@ -1091,7 +1091,11 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                     catch (TimeoutException)
                     {
                         // Failed to acquire lock, skip L1 update
-                        GetLogger()?.LogDebug("Skipped L1 update for {Key} due to lock contention.", kvp.Key);
+                        var logger = GetLogger();
+                        if (logger != null && logger.IsEnabled(LogLevel.Debug))
+                        {
+                            logger.LogL1UpdateSkipped(GetCacheName(), BuildCacheKey(kvp.Key));
+                        }
                     }
                 }
                 else
