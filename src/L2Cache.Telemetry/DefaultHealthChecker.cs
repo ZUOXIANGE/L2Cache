@@ -80,7 +80,10 @@ public class DefaultHealthChecker : IHealthChecker
 
         // 启动定时检查
         _checkTimer.Change(_options.CheckInterval, _options.CheckInterval);
-        _logger?.LogInformation("健康监控已启动，检查间隔: {Interval}", _options.CheckInterval);
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("健康监控已启动，检查间隔: {Interval}", _options.CheckInterval);
+        }
     }
 
     /// <inheritdoc />
@@ -140,9 +143,9 @@ public class DefaultHealthChecker : IHealthChecker
             // 记录历史
             AddToHistory(result);
 
-            if (_options.EnableDetailedLogging)
+            if (_options.EnableDetailedLogging && _logger != null && _logger.IsEnabled(LogLevel.Information))
             {
-                _logger?.LogInformation("健康检查完成: {Status}, 耗时: {Duration}ms", result.Status, stopwatch.ElapsedMilliseconds);
+                _logger.LogInformation("健康检查完成: {Status}, 耗时: {Duration}ms", result.Status, stopwatch.ElapsedMilliseconds);
             }
         }
         catch (Exception ex)

@@ -30,7 +30,10 @@ public class ProductCacheService : L2CacheService<int, ProductDto>
     public void SetSerializer(ICacheSerializer serializer)
     {
         _customSerializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
-        _logger.LogInformation("Switched serializer to: {SerializerName}", serializer.Name);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Switched serializer to: {SerializerName}", serializer.Name);
+        }
     }
 
     // Override to use our custom swappable serializer
@@ -95,7 +98,10 @@ public class ProductCacheService : L2CacheService<int, ProductDto>
     protected override async Task UpdateDataAsync(int id, ProductDto data)
     {
         await Task.Delay(50);
-        _logger.LogInformation("Updated product in DB: {Id}", id);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Updated product in DB: {Id}", id);
+        }
     }
 
     /// <summary>
@@ -103,7 +109,10 @@ public class ProductCacheService : L2CacheService<int, ProductDto>
     /// </summary>
     protected override void OnRedisCacheSet(int key, ProductDto value, TimeSpan? expiry)
     {
-        _logger.LogInformation("Product {Id} was set to Redis cache. Expiry: {Expiry}", key, expiry);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Product {Id} was set to Redis cache. Expiry: {Expiry}", key, expiry);
+        }
 
         // Example: We could trigger a message queue event here, or update a secondary index
         // _messageQueue.Publish(new ProductUpdatedEvent(key));

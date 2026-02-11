@@ -239,7 +239,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             if (localCache != null && localCache.TryGetValue(fullKey, out object? localObj))
             {
                 var elapsed = Stopwatch.GetElapsedTime(startTime);
-                logger?.LogCacheHit(GetCacheName(), "L1", cacheKey, elapsed);
+                if (logger != null && logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogCacheHit(GetCacheName(), "L1", cacheKey, elapsed);
+                }
                 telemetry?.RecordCacheHit(GetCacheName(), CacheLevel.L1, cacheKey, elapsed);
 
                 if (localObj == NullValObj)
@@ -253,7 +256,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             if (localCache != null)
             {
                 var elapsed = Stopwatch.GetElapsedTime(startTime);
-                logger?.LogCacheMiss(GetCacheName(), "L1", cacheKey, elapsed);
+                if (logger != null && logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogCacheMiss(GetCacheName(), "L1", cacheKey, elapsed);
+                }
                 telemetry?.RecordCacheMiss(GetCacheName(), CacheLevel.L1, cacheKey, elapsed);
             }
 
@@ -266,7 +272,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
                 if (value.HasValue)
                 {
                     var elapsed = Stopwatch.GetElapsedTime(startTime);
-                    logger?.LogCacheHit(GetCacheName(), "L2", cacheKey, elapsed);
+                    if (logger != null && logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogCacheHit(GetCacheName(), "L2", cacheKey, elapsed);
+                    }
                     telemetry?.RecordCacheHit(GetCacheName(), CacheLevel.L2, cacheKey, elapsed);
 
                     if (value == NullValString)
@@ -296,7 +305,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             }
 
             var elapsedMiss = Stopwatch.GetElapsedTime(startTime);
-            logger?.LogCacheMiss(GetCacheName(), "L2", cacheKey, elapsedMiss);
+            if (logger != null && logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogCacheMiss(GetCacheName(), "L2", cacheKey, elapsedMiss);
+            }
             telemetry?.RecordCacheMiss(GetCacheName(), CacheLevel.L2, cacheKey, elapsedMiss);
             return (CacheStatus.NotFound, default);
         }
@@ -674,7 +686,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
 
             var elapsed = Stopwatch.GetElapsedTime(startTime);
             var dataSize = serializedValue.Length;
-            logger?.LogCacheSet(GetCacheName(), "L2", cacheKey, elapsed, expiry, dataSize);
+            if (logger != null && logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogCacheSet(GetCacheName(), "L2", cacheKey, elapsed, expiry, dataSize);
+            }
             telemetry?.RecordCacheSet(GetCacheName(), CacheLevel.L2, cacheKey, elapsed, dataSize);
 
             return value!;
@@ -757,7 +772,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
         try
         {
             var elapsedStart = Stopwatch.GetElapsedTime(startTime);
-            logger?.LogCacheReload(GetCacheName(), cacheKey, elapsedStart);
+            if (logger != null && logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogCacheReload(GetCacheName(), cacheKey, elapsedStart);
+            }
             var value = await QueryDataAsync(key);
 
             if (value != null)
@@ -812,7 +830,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             {
                 localCache.Remove(fullKey);
                 var elapsed = Stopwatch.GetElapsedTime(startTime);
-                logger?.LogCacheEvict(GetCacheName(), "L1", cacheKey, elapsed);
+                if (logger != null && logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogCacheEvict(GetCacheName(), "L1", cacheKey, elapsed);
+                }
                 telemetry?.RecordCacheEvict(GetCacheName(), CacheLevel.L1, cacheKey, elapsed);
             }
 
@@ -824,7 +845,10 @@ public abstract class AbstractCacheService<TKey, TValue> : ICacheService<TKey, T
             }
 
             var elapsedTotal = Stopwatch.GetElapsedTime(startTime);
-            logger?.LogCacheEvict(GetCacheName(), "L2", cacheKey, elapsedTotal);
+            if (logger != null && logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogCacheEvict(GetCacheName(), "L2", cacheKey, elapsedTotal);
+            }
             telemetry?.RecordCacheEvict(GetCacheName(), CacheLevel.L2, cacheKey, elapsedTotal);
 
             return result;

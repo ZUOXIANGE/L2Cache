@@ -98,8 +98,11 @@ public class DefaultTelemetryProvider : ITelemetryProvider
             $"{_options.MetricsPrefix}_{TelemetryConstants.MetricNames.CacheMemoryUsage}",
             "bytes", "缓存内存使用量");
 
-        _logger.LogInformation("遥测提供程序已初始化，活动源: {ActivitySource}, 指标前缀: {MetricsPrefix}",
-            _options.ActivitySourceName, _options.MetricsPrefix);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("遥测提供程序已初始化，活动源: {ActivitySource}, 指标前缀: {MetricsPrefix}",
+                _options.ActivitySourceName, _options.MetricsPrefix);
+        }
     }
 
     /// <inheritdoc />
@@ -179,7 +182,10 @@ public class DefaultTelemetryProvider : ITelemetryProvider
                 activity.AddEvent(new ActivityEvent(name, DateTimeOffset.UtcNow, eventTags));
             }
 
-            _logger.LogDebug("记录事件: {EventName}", name);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("记录事件: {EventName}", name);
+            }
         }
         catch (Exception ex)
         {
@@ -221,7 +227,10 @@ public class DefaultTelemetryProvider : ITelemetryProvider
                 activity.SetStatus(ActivityStatusCode.Error, exception.Message);
             }
 
-            _logger.LogDebug("记录异常: {ExceptionType}", exception.GetType().Name);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("记录异常: {ExceptionType}", exception.GetType().Name);
+            }
         }
         catch (Exception ex)
         {
@@ -243,7 +252,10 @@ public class DefaultTelemetryProvider : ITelemetryProvider
             // 为了简化，我们使用通用的请求计数器
             _requestsCounter.Add(value, tagList);
 
-            _logger.LogDebug("增加计数器: {CounterName}, 值: {Value}", name, value);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("增加计数器: {CounterName}, 值: {Value}", name, value);
+            }
         }
         catch (Exception ex)
         {
@@ -262,7 +274,10 @@ public class DefaultTelemetryProvider : ITelemetryProvider
             var tagList = CreateTagList(tags);
             _responseTimeHistogram.Record(value, tagList);
 
-            _logger.LogDebug("记录直方图: {HistogramName}, 值: {Value}", name, value);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("记录直方图: {HistogramName}, 值: {Value}", name, value);
+            }
         }
         catch (Exception ex)
         {
@@ -294,7 +309,10 @@ public class DefaultTelemetryProvider : ITelemetryProvider
                 _memoryUsageGauge.Add((long)value, tagList);
             }
 
-            _logger.LogDebug("设置仪表: {GaugeName}, 值: {Value}", name, value);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("设置仪表: {GaugeName}, 值: {Value}", name, value);
+            }
         }
         catch (Exception ex)
         {
@@ -423,7 +441,10 @@ public class DefaultTelemetryProvider : ITelemetryProvider
                 _cacheSizeHistogram.Record(size.Value, tagList);
             }
 
-            _logger.LogDebug("记录缓存操作: {CacheName}, {Operation}, 键: {Key}, 命中: {Hit}", cacheName, operation, key, hit);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("记录缓存操作: {CacheName}, {Operation}, 键: {Key}, 命中: {Hit}", cacheName, operation, key, hit);
+            }
         }
         catch (Exception ex)
         {
@@ -522,7 +543,10 @@ public class DefaultTelemetryProvider : ITelemetryProvider
             {
                 ResetInternalStatistics(stats);
             }
-            _logger.LogInformation("Cache statistics reset for: {CacheName}", cacheName);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Cache statistics reset for: {CacheName}", cacheName);
+            }
         }
     }
 

@@ -42,7 +42,10 @@ public class CustomUserCacheService : AbstractCacheService<int, UserDto>
     /// </summary>
     protected override async Task<UserDto?> QueryDataAsync(int key)
     {
-        _logger.LogInformation("Fetching user {Key} from simulated database...", key);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Fetching user {Key} from simulated database...", key);
+        }
 
         // 模拟数据库查询延迟
         await Task.Delay(50);
@@ -63,6 +66,9 @@ public class CustomUserCacheService : AbstractCacheService<int, UserDto>
     /// </summary>
     protected override void OnRedisCacheSet(int key, UserDto value, TimeSpan? expiry)
     {
-        _logger.LogInformation("Custom Hook: User {Id} cached in Redis.", key);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Custom Hook: User {Id} cached in Redis.", key);
+        }
     }
 }
