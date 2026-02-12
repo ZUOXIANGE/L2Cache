@@ -24,7 +24,7 @@
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
-    <PackageVersion Include="StackExchange.Redis" Version="2.10.14" />
+    <PackageVersion Include="StackExchange.Redis" Version="2.11.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.12.36" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
     <PackageVersion Include="Testcontainers" Version="4.10.0" />
