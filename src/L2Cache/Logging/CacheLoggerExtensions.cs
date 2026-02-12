@@ -88,11 +88,17 @@ public static partial class CacheLoggerExtensions
     {
         if (success)
         {
-            LogDataSourceLoadSuccess(logger, cacheName, key, responseTime, dataSize);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                LogDataSourceLoadSuccess(logger, cacheName, key, responseTime, dataSize);
+            }
         }
         else
         {
-            LogDataSourceLoadFailed(logger, cacheName, key, responseTime);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                LogDataSourceLoadFailed(logger, cacheName, key, responseTime);
+            }
         }
     }
 
@@ -141,11 +147,17 @@ public static partial class CacheLoggerExtensions
     {
         if (isHealthy)
         {
-            LogCacheHealthCheckPassed(logger, cacheName, responseTime, details ?? "OK");
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                LogCacheHealthCheckPassed(logger, cacheName, responseTime, details ?? "OK");
+            }
         }
         else
         {
-            LogCacheHealthCheckFailed(logger, cacheName, responseTime, details ?? "Unknown error");
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                LogCacheHealthCheckFailed(logger, cacheName, responseTime, details ?? "Unknown error");
+            }
         }
     }
 
