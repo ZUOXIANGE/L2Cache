@@ -121,7 +121,7 @@ jobs:
         fi
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       with:
         body_path: RELEASE_CHANGELOG.md
         files: ${{ env.NuGetDirectory }}/*.nupkg
