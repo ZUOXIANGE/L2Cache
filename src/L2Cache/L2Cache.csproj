@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <!--<PackageReference Include="Microsoft.Extensions.DependencyInjection" VersionOverride="10.0.5" />-->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <ProjectReference Include="..\L2Cache.Abstractions\L2Cache.Abstractions.csproj" />
     <ProjectReference Include="..\L2Cache.Serializers.Json\L2Cache.Serializers.Json.csproj" />
   </ItemGroup>
