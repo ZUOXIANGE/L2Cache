@@ -37,7 +37,8 @@ internal sealed class RedisPubSubInvalidationBus : ICacheInvalidationBus
     {
         try
         {
-            var payload = JsonSerializer.SerializeToUtf8Bytes(message, SerializerOptions);
+            // source-gen：固定类型直接绑定预生成的元数据，避免反射元数据查找
+            var payload = JsonSerializer.SerializeToUtf8Bytes(message, InvalidationMessageJsonContext.Default.InvalidationMessage);
             await _multiplexer.GetSubscriber().PublishAsync(RedisChannel.Literal(GetChannel(message.CacheName)), payload, CommandFlags.FireAndForget).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -81,6 +82,7 @@ internal sealed class RedisPubSubInvalidationBus : ICacheInvalidationBus
                 return;
             }
 
+            // 反射反序列化实测优于 source-gen（struct 无装箱，更快且分配更少），故保留 options 方式
             var message = JsonSerializer.Deserialize<InvalidationMessage>(bytes, SerializerOptions);
             if (string.IsNullOrEmpty(message.CacheName) || string.IsNullOrEmpty(message.Key))
             {

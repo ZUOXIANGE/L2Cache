@@ -7,6 +7,12 @@ namespace L2Cache.Serializers.Json;
 /// <summary>
 /// 基于 System.Text.Json 的缓存序列化器。
 /// <para>输出 UTF-8 字节流，与 L2 存储的字节语义直接对接。</para>
+/// <para>
+/// 说明：缓存值类型 TValue 由使用方任意指定，无法使用 JsonSerializerContext source-gen；
+/// STJ 内部已按 options 缓存类型元数据，实测缓存 JsonTypeInfo 后分配与耗时均无实质收益
+/// （详见 benchmarks/L2Cache.Benchmarks/SerializationBenchmarks.cs），故保持直接传 options 的简单实现。
+/// 若使用方类型可预知，可传入基于 JsonSerializerContext 的 options 以支持 Native AOT。
+/// </para>
 /// </summary>
 public class JsonCacheSerializer : ICacheSerializer
 {
