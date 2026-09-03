@@ -33,7 +33,9 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Check Formatting
-        run: dotnet format --verify-no-changes
+        run: |
+          dotnet restore L2Cache.slnx
+          dotnet format L2Cache.slnx --verify-no-changes --no-restore
 
   build:
     name: Build (${{ matrix.os }})
