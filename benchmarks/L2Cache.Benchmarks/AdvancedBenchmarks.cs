@@ -8,7 +8,7 @@ namespace L2Cache.Benchmarks;
 [MemoryDiagnoser]
 public class AdvancedBenchmarks : IDisposable
 {
-    private ICacheService<string, object> _cache = null!;
+    private ICacheClient<string, byte[]> _cache = null!;
     private IServiceProvider _serviceProvider = null!;
     private byte[] _largeData = null!;
     private string _largeObjectKey = null!;
@@ -32,13 +32,14 @@ public class AdvancedBenchmarks : IDisposable
             options.Redis.ConnectionString = _redisContainer.ConnectionString;
             options.Redis.Database = 0;
             options.Telemetry.EnableMetrics = true;
-        });
+        })
+        .AddCache<string, byte[]>("bench_advanced");
 
         _serviceProvider = services.BuildServiceProvider();
-        _cache = _serviceProvider.GetRequiredService<ICacheService<string, object>>();
+        _cache = _serviceProvider.GetRequiredService<ICacheClient<string, byte[]>>();
 
-        // 设置大数据对象
-        _largeData = new byte[1024 * 1024]; // 1MB
+        // 设置大数据对象（1MB）
+        _largeData = new byte[1024 * 1024];
         new Random(42).NextBytes(_largeData);
         _largeObjectKey = "large_object_fixed";
         await _cache.PutAsync(_largeObjectKey, _largeData);
@@ -49,7 +50,7 @@ public class AdvancedBenchmarks : IDisposable
         {
             var key = $"hit_test_{i}";
             _hitTestKeys.Add(key);
-            await _cache.PutAsync(key, new { Index = i });
+            await _cache.PutAsync(key, new byte[64]);
         }
     }
 
@@ -81,12 +82,7 @@ public class AdvancedBenchmarks : IDisposable
     public async Task CacheHitTest()
     {
         // Simulate random access to existing keys
-        var randomKey = _hitTestKeys[new Random().Next(_hitTestKeys.Count)];
+        var randomKey = _hitTestKeys[Random.Shared.Next(_hitTestKeys.Count)];
         await _cache.GetAsync(randomKey);
     }
-
-    // Optional: Expose metrics if needed, but BenchmarkDotNet handles timing/memory.
-    // We could have a cleanup method if we wanted to check metrics at the end, 
-    // but BenchmarkDotNet runs methods many times.
 }
-

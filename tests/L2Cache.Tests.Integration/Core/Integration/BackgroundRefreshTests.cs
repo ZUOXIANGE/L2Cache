@@ -1,105 +1,107 @@
+using System.Text.Json;
 using L2Cache.Abstractions;
-using L2Cache.Background;
-using L2Cache.Extensions;
-using L2Cache.Serializers.Json;
 using L2Cache.Tests.Integration.Helpers;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
 
 namespace L2Cache.Tests.Integration.Core.Integration;
 
 /// <summary>
 /// 后台刷新功能测试
-/// 测试缓存的后台刷新机制，包括不同的刷新策略和Redis数据变更后的本地缓存更新
+/// <para>
+/// 新架构下，后台刷新由 CacheRefreshBackgroundService（IHostedService）按 Interval 轮询驱动；
+/// 集成测试中通过手动调用 <see cref="ICacheRefreshable{TKey}.RefreshKeyAsync"/> 验证单次刷新逻辑，
+/// 避免依赖真实定时轮询，保证确定性。
+/// </para>
 /// </summary>
 public class BackgroundRefreshTests
 {
     /// <summary>
-    /// 测试用的刷新策略
-    /// 根据Key的前缀返回不同的刷新间隔
+    /// 测试：手动触发刷新时，应优先采用 L2 最新值回填 L1（模拟其他节点更新了数据）
     /// </summary>
-    private sealed class TestRefreshPolicy : ICacheRefreshPolicy<string, string>
+    [Test]
+    public async Task RefreshKeyAsync_Should_Pull_Latest_L2_Value_Into_L1()
     {
-        public TimeSpan? GetRefreshInterval(string key)
-        {
-            if (key.StartsWith("fast", StringComparison.Ordinal))
-            {
-                return TimeSpan.FromMilliseconds(200);
-            }
-            if (key.StartsWith("slow", StringComparison.Ordinal))
-            {
-                return TimeSpan.FromSeconds(5);
-            }
-            return null; // 默认值
-        }
+        // Arrange (准备)
+        using var host = new CacheTestHost(
+            GlobalTestSetup.RedisConnectionString,
+            configureBuilder: b => b.WithBackgroundRefresh(o => o.Interval = TimeSpan.FromMilliseconds(100)));
+
+        var client = host.Client;
+        var refreshable = host.GetService<ICacheRefreshable<string>>();
+        var key = "refresh_l2_key";
+
+        // 首次回源，使 L1 / L2 均有值并进入刷新跟踪
+        var initial = await client.GetOrLoadAsync(key);
+        await Assert.That(initial).IsEqualTo($"db_{key}");
+
+        // 直接更新 L2（模拟其他节点写入了新值），绕过本节点 L1
+        await host.Db.StringSetAsync(host.FullKey(key), JsonSerializer.Serialize("v2"));
+
+        // Act (执行)：触发一次后台刷新
+        await refreshable.RefreshKeyAsync(key);
+
+        // Assert (断言)：L1 已被 L2 最新值覆盖
+        var refreshed = await client.GetAsync(key);
+        await Assert.That(refreshed).IsEqualTo("v2");
     }
 
     /// <summary>
-    /// 测试配置了刷新策略时，后台刷新应使用不同的间隔
+    /// 测试：L2 无值时，刷新应回源加载并回填缓存
     /// </summary>
     [Test]
-    public async Task BackgroundRefresh_ShouldUseDifferentIntervals_WhenPolicyConfigured()
+    public async Task RefreshKeyAsync_Should_Load_From_Source_When_L2_Missing()
     {
         // Arrange (准备)
-        var services = new ServiceCollection();
-        services.AddLogging(builder => builder.AddConsole());
+        using var host = new CacheTestHost(
+            GlobalTestSetup.RedisConnectionString,
+            configureBuilder: b => b.WithBackgroundRefresh(o => o.Interval = TimeSpan.FromMilliseconds(100)));
 
-        services.AddL2Cache(options =>
-        {
-            options.UseLocalCache = true;
-            options.UseRedis = true;
-            options.Redis.ConnectionString = GlobalTestSetup.RedisConnectionString;
-            options.BackgroundRefresh.Enabled = true;
-            options.BackgroundRefresh.Interval = TimeSpan.FromSeconds(10); // 全局默认慢速
-        });
+        var client = host.Client;
+        var refreshable = host.GetService<ICacheRefreshable<string>>();
+        var key = "refresh_source_key";
 
-        // 注册自定义策略
-        services.AddL2CacheRefresh<string, string>(sp => new TestRefreshPolicy());
+        // 首次回源（计入 1 次加载）
+        _ = await client.GetOrLoadAsync(key);
+        var loadCountAfterInitial = host.Counter.LoadCount;
+        await Assert.That(loadCountAfterInitial).IsEqualTo(1);
 
-        var provider = services.BuildServiceProvider();
+        // 外部删除 L2（模拟缓存数据过期或被清除），此时 L1 中仍保留旧值
+        await host.Db.KeyDeleteAsync(host.FullKey(key));
 
-        var hostedService = provider.GetServices<IHostedService>()
-            .OfType<CacheRefreshBackgroundService<string, string>>()
-            .First();
+        // Act (执行)：触发一次后台刷新
+        await refreshable.RefreshKeyAsync(key);
 
-        await hostedService.StartAsync(CancellationToken.None);
+        // Assert (断言)：刷新时应回源一次并回填
+        var refreshed = await client.GetAsync(key);
+        await Assert.That(refreshed).IsEqualTo($"db_{key}");
+        await Assert.That(host.Counter.LoadCount).IsEqualTo(loadCountAfterInitial + 1);
+    }
 
-        var cacheService = provider.GetRequiredService<ICacheService<string, string>>();
-        var serializer = new JsonCacheSerializer();
+    /// <summary>
+    /// 测试：L1 中已不存在的 Key 刷新时应直接停止跟踪，不触发回源
+    /// </summary>
+    [Test]
+    public async Task RefreshKeyAsync_Should_StopTracking_When_Key_Not_In_L1()
+    {
+        // Arrange (准备)
+        using var host = new CacheTestHost(
+            GlobalTestSetup.RedisConnectionString,
+            configureBuilder: b => b.WithBackgroundRefresh(o => o.Interval = TimeSpan.FromMilliseconds(100)));
 
-        // Act (执行)
-        // 1. 写入快速刷新和慢速刷新的Key
-        var fastKey = "fast_key";
-        var slowKey = "slow_key";
-        await cacheService.PutAsync(fastKey, "v1");
-        await cacheService.PutAsync(slowKey, "v1");
+        var client = host.Client;
+        var refreshable = host.GetService<ICacheRefreshable<string>>();
+        var key = "refresh_evicted_key";
 
-        // 2. 直接更新Redis (模拟外部数据源更新)
-        var redis = ConnectionMultiplexer.Connect(GlobalTestSetup.RedisConnectionString);
-        var db = redis.GetDatabase();
-        // 缓存名称为 "String" (基于 TValue 类型名称)
-        // L2CacheService 中的Key格式为 $"{GetCacheName()}:{BuildCacheKey(key)}"
+        // 首次回源后清除缓存（L1 / L2 均为空）
+        _ = await client.GetOrLoadAsync(key);
+        await client.EvictAsync(key);
+        var loadCountAfterEvict = host.Counter.LoadCount;
 
-        await db.StringSetAsync($"String:{fastKey}", serializer.SerializeToString("v2"));
-        await db.StringSetAsync($"String:{slowKey}", serializer.SerializeToString("v2"));
+        // Act (执行)：L1 已无值，刷新应跳过
+        await refreshable.RefreshKeyAsync(key);
 
-        // 3. 显式调用 UpdateNextRefresh 模拟后台服务发现 DueKey
-        // 在真实场景中，BackgroundService 会定期轮询，但在集成测试中
-        // 我们可以手动触发或增加等待时间。
-
-        // 4. 等待快速刷新的间隔 (200ms) + 缓冲时间
-        await Task.Delay(2000); // 增加到 2s 确保刷新周期完成
-
-        // Verify Fast Key Refreshed (L1 应该已从 Redis 更新)
-        var fastVal = await cacheService.GetAsync(fastKey);
-        await Assert.That(fastVal).IsEqualTo("v2");
-
-        // Verify Slow Key Not Yet Refreshed (Default interval 10s or Policy 5s)
-        var slowVal = await cacheService.GetAsync(slowKey);
-        await Assert.That(slowVal).IsEqualTo("v1");
-
-        await hostedService.StopAsync(CancellationToken.None);
+        // Assert (断言)：未发生回源，且缓存仍为空
+        await Assert.That(host.Counter.LoadCount).IsEqualTo(loadCountAfterEvict);
+        var value = await client.GetAsync(key);
+        await Assert.That(value).IsNull();
     }
 }

@@ -1,65 +1,63 @@
-using System.Collections.Concurrent;
-
 namespace L2Cache.Internal;
 
 /// <summary>
-/// 异步 Keyed 锁
-/// <para>基于 SemaphoreSlim 实现的细粒度内存锁。</para>
+/// 异步分段锁。
+/// <para>
+/// 固定数量的 <see cref="SemaphoreSlim"/> 按 Key 哈希分段获取，内存占用 O(分段数)，
+/// 避免按 Key 建锁在高基数场景下的无限增长。不同 Key 偶发映射到同一分段只会
+/// 串行化等待，不影响正确性。
+/// </para>
 /// </summary>
 internal sealed class AsyncKeyedLocker<TKey> where TKey : notnull
 {
-    private readonly ConcurrentDictionary<TKey, SemaphoreSlim> _semaphores = new();
+    private readonly SemaphoreSlim[] _semaphores;
+
+    /// <summary>默认分段数：兼顾内存占用与碰撞概率（约 1/1024 的无关 Key 串行化概率）。</summary>
+    public const int DefaultStripeCount = 1024;
+
+    public AsyncKeyedLocker(int stripeCount = DefaultStripeCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(stripeCount, 1);
+        _semaphores = new SemaphoreSlim[stripeCount];
+        for (var i = 0; i < stripeCount; i++)
+        {
+            _semaphores[i] = new SemaphoreSlim(1, 1);
+        }
+    }
 
     /// <summary>
     /// 获取并进入锁
     /// </summary>
-    /// <param name="key">锁的 Key</param>
+    /// <param name="key">锁的 Key（决定使用的分段）</param>
     /// <param name="timeout">超时时间</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>释放锁的 Disposable 对象</returns>
     public async Task<IDisposable> LockAsync(TKey key, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
-        var semaphore = _semaphores.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        var semaphore = _semaphores[(uint)key.GetHashCode() % (uint)_semaphores.Length];
 
-        var entered = await semaphore.WaitAsync(timeout, cancellationToken);
+        var entered = await semaphore.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
         if (!entered)
         {
             throw new TimeoutException($"Failed to acquire memory lock for key: {key}");
         }
 
-        return new Releaser(key, this);
+        return new Releaser(semaphore);
     }
 
-    private void Release(TKey key)
+    private sealed class Releaser(SemaphoreSlim semaphore) : IDisposable
     {
-        if (_semaphores.TryGetValue(key, out var semaphore))
-        {
-            semaphore.Release();
-            // 注意：这里没有做彻底的清理（例如当 waiting count 为 0 时移除 key），
-            // 因为在高并发下准确移除且不引起竞态条件比较复杂。
-            // 对于 L2Cache 这种 key 数量可能很大的场景，长期运行可能会有少量内存占用。
-            // 如果 Key 数量非常大，建议引入 LRU 清理机制或定时清理。
-            // 考虑到当前是基础实现，暂不进行复杂清理。
-        }
-    }
-
-    private sealed class Releaser : IDisposable
-    {
-        private readonly TKey _key;
-        private readonly AsyncKeyedLocker<TKey> _locker;
         private bool _disposed;
-
-        public Releaser(TKey key, AsyncKeyedLocker<TKey> locker)
-        {
-            _key = key;
-            _locker = locker;
-        }
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             _disposed = true;
-            _locker.Release(_key);
+            semaphore.Release();
         }
     }
 }

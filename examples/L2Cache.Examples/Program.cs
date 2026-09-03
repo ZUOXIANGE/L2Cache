@@ -1,6 +1,9 @@
 using L2Cache;
+using L2Cache.Abstractions.Serialization;
+using L2Cache.Examples.Models;
 using L2Cache.Examples.Services;
 using L2Cache.Extensions;
+using L2Cache.Serializers.MemoryPack;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -52,8 +55,8 @@ builder.Services.AddOpenTelemetry()
             });
     });
 
-// Configure L2Cache (replaces AddRedisCacheService)
-builder.Services.AddL2Cache(options =>
+// Configure L2Cache
+var l2Cache = builder.Services.AddL2Cache(options =>
 {
     options.UseLocalCache = true;
     options.UseRedis = true;
@@ -66,18 +69,34 @@ builder.Services.AddL2Cache(options =>
     // Enable Health Check
     options.Telemetry.EnableHealthCheck = true;
 
-    // Enable Background Refresh
+    // Background Refresh 全局默认间隔（区域可通过 WithBackgroundRefresh 覆盖）
     options.BackgroundRefresh.Enabled = true;
     options.BackgroundRefresh.Interval = TimeSpan.FromMinutes(1);
-}).AddL2CacheTelemetry();
+});
 
-// Register Custom Services
-// GenericCacheService was removed in favor of using the default L2CacheService directly (as shown in BasicsController)
-// ProductCacheService demonstrates inheriting L2CacheService for custom behavior (Cache Aside, etc.)
-builder.Services.AddScoped<ProductCacheService>();
+// Basics：最简单的 string -> string 区域，无需 Loader
+l2Cache.AddCache<string, string>("basics");
 
-// CustomUserCacheService demonstrates inheriting AbstractCacheService directly
-builder.Services.AddScoped<CustomUserCacheService>();
+// Products：演示 Loader 回源 + 后台刷新
+l2Cache.AddCache<int, ProductDto>("products", region =>
+{
+    region.DefaultTtl = TimeSpan.FromMinutes(10);
+})
+    .WithLoader<ProductLoader>()
+    .WithBackgroundRefresh(refresh => refresh.Interval = TimeSpan.FromMinutes(1));
+
+// Users：演示 LoaderBase（只实现单条查询，批量逐 Key 回源）
+l2Cache.AddCache<int, UserDto>("users", region =>
+{
+    region.DefaultTtl = TimeSpan.FromMinutes(10);
+})
+    .WithLoader<CustomUserLoader>();
+
+// 序列化器：全局注册 MemoryPack 实现（默认 JSON，可替换为任意 ICacheSerializer 实现）
+builder.Services.AddSingleton<ICacheSerializer>(new MemoryPackCacheSerializer());
+
+// 遥测：将默认的 NoOpTelemetryProvider 替换为 DefaultTelemetryProvider（统计 + 健康检查）
+builder.Services.AddL2CacheTelemetry();
 
 // Add Controllers
 builder.Services.AddControllers()
