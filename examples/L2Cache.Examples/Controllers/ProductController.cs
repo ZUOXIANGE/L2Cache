@@ -1,5 +1,5 @@
+using L2Cache.Abstractions;
 using L2Cache.Examples.Models;
-using L2Cache.Examples.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace L2Cache.Examples.Controllers;
@@ -8,24 +8,24 @@ namespace L2Cache.Examples.Controllers;
 [Route("api/[controller]")]
 public class ProductController : ControllerBase
 {
-    private readonly ProductCacheService _productCache;
-    private readonly ILogger<ProductController> _logger;
+    // ICacheClient<int, ProductDto> resolves the "products" region
+    // (AddCache<int, ProductDto>("products").WithLoader<ProductLoader>())
+    private readonly ICacheClient<int, ProductDto> _cache;
 
-    public ProductController(ProductCacheService productCache, ILogger<ProductController> logger)
+    public ProductController(ICacheClient<int, ProductDto> cache)
     {
-        _productCache = productCache;
-        _logger = logger;
+        _cache = cache;
     }
 
     /// <summary>
     /// Get product by ID.
-    /// If not in cache, loads from simulated DB and caches it.
+    /// If not in cache, loads from the ProductLoader (simulated DB) and caches it.
     /// </summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductDto>> Get(int id)
     {
-        // Cache Aside pattern handled by the service
-        var product = await _productCache.GetOrLoadAsync(id, TimeSpan.FromMinutes(10));
+        // Cache-Aside 回源由注册的 Loader 完成
+        var product = await _cache.GetOrLoadAsync(id, TimeSpan.FromMinutes(10));
 
         if (product == null) return NotFound($"Product {id} not found");
         return Ok(product);
@@ -33,15 +33,18 @@ public class ProductController : ControllerBase
 
     /// <summary>
     /// Update product.
-    /// Updates DB and invalidates/updates cache.
+    /// 模拟业务侧先更新数据库，再直接回写缓存（Write-Through）。
     /// </summary>
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] ProductDto product)
     {
         if (id != product.Id) return BadRequest("ID mismatch");
 
-        // Service handles DB update and cache invalidation/update
-        await _productCache.UpdateAsync(id, product);
+        // 模拟 DB 更新
+        await Task.Delay(50);
+
+        // 覆盖写缓存（L1 + L2 同步更新，并广播失效消息）
+        await _cache.PutAsync(id, product, TimeSpan.FromMinutes(10));
 
         return Ok(new { message = "Product updated", id });
     }
@@ -52,7 +55,7 @@ public class ProductController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteCache(int id)
     {
-        var removed = await _productCache.EvictAsync(id);
+        var removed = await _cache.EvictAsync(id);
         return Ok(new { message = "Cache evicted", id, removed });
     }
 
@@ -63,7 +66,7 @@ public class ProductController : ControllerBase
     [HttpPost("batch")]
     public async Task<ActionResult<Dictionary<int, ProductDto>>> BatchGet([FromBody] List<int> ids)
     {
-        var products = await _productCache.BatchGetOrLoadAsync(ids, TimeSpan.FromMinutes(10));
+        var products = await _cache.BatchGetOrLoadAsync(ids, TimeSpan.FromMinutes(10));
         return Ok(products);
     }
 
@@ -74,8 +77,8 @@ public class ProductController : ControllerBase
     [HttpPost("{id}/reload")]
     public async Task<ActionResult<ProductDto>> Reload(int id)
     {
-        var product = await _productCache.ReloadAsync(id, TimeSpan.FromMinutes(10));
+        var product = await _cache.ReloadAsync(id, TimeSpan.FromMinutes(10));
+        if (product == null) return NotFound($"Product {id} not found");
         return Ok(product);
     }
-
 }

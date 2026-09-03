@@ -14,15 +14,19 @@ Content-Type: application/json
 GET {{HostAddress}}/api/basics/my-key
 Accept: application/json
 
+### Basics - Exists Cache
+GET {{HostAddress}}/api/basics/my-key/exists
+Accept: application/json
+
 ### Basics - Remove Cache
 DELETE {{HostAddress}}/api/basics/my-key
 Accept: application/json
 
-### Product - Get (Loads from Source)
+### Product - Get (Loads from ProductLoader)
 GET {{HostAddress}}/api/product/1001
 Accept: application/json
 
-### Product - Update
+### Product - Update (Write-Through)
 PUT {{HostAddress}}/api/product/1001
 Content-Type: application/json
 
@@ -32,10 +36,28 @@ Content-Type: application/json
   "price": 199.99
 }
 
-### Advanced - Concurrency Test
-GET {{HostAddress}}/api/advanced/concurrency/1002?count=10
+### Product - Reload from Source
+POST {{HostAddress}}/api/product/1001/reload
 Accept: application/json
 
-### Advanced - Switch Serializer to MemoryPack
-POST {{HostAddress}}/api/advanced/serializer/memorypack
+### Product - Batch Get
+POST {{HostAddress}}/api/product/batch
+Content-Type: application/json
+
+[1001, 1002, 1003]
+
+### User - Get (Loads from CustomUserLoader)
+GET {{HostAddress}}/api/custom-inheritance/users/1
+Accept: application/json
+
+### Advanced - Cache Statistics
+GET {{HostAddress}}/api/advanced/stats
+Accept: application/json
+
+### Telemetry - Health
+GET {{HostAddress}}/api/telemetry/health
+Accept: application/json
+
+### Telemetry - Metrics
+GET {{HostAddress}}/api/telemetry/metrics
 Accept: application/json

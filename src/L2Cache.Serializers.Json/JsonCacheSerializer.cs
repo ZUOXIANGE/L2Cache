@@ -5,17 +5,23 @@ using L2Cache.Abstractions.Serialization;
 namespace L2Cache.Serializers.Json;
 
 /// <summary>
-/// 基于 System.Text.Json 的缓存序列化器
-/// 提供高性能的 JSON 序列化和反序列化功能
+/// 基于 System.Text.Json 的缓存序列化器。
+/// <para>输出 UTF-8 字节流，与 L2 存储的字节语义直接对接。</para>
+/// <para>
+/// 说明：缓存值类型 TValue 由使用方任意指定，无法使用 JsonSerializerContext source-gen；
+/// STJ 内部已按 options 缓存类型元数据，实测缓存 JsonTypeInfo 后分配与耗时均无实质收益
+/// （详见 benchmarks/L2Cache.Benchmarks/SerializationBenchmarks.cs），故保持直接传 options 的简单实现。
+/// 若使用方类型可预知，可传入基于 JsonSerializerContext 的 options 以支持 Native AOT。
+/// </para>
 /// </summary>
 public class JsonCacheSerializer : ICacheSerializer
 {
     private readonly JsonSerializerOptions _options;
 
     /// <summary>
-    /// 构造函数
+    /// 构造函数。
     /// </summary>
-    /// <param name="options">JSON 序列化选项，如果为 null 则使用默认选项</param>
+    /// <param name="options">JSON 序列化选项，如果为 null 则使用默认选项。</param>
     public JsonCacheSerializer(JsonSerializerOptions? options = null)
     {
         _options = options ?? new JsonSerializerOptions
@@ -27,35 +33,13 @@ public class JsonCacheSerializer : ICacheSerializer
         };
     }
 
-    /// <summary>
-    /// 序列化器名称
-    /// </summary>
+    /// <inheritdoc />
     public string Name => "System.Text.Json";
 
-    /// <summary>
-    /// 序列化器版本
-    /// </summary>
-    public string Version => "8.0";
-
-    /// <summary>
-    /// 是否支持二进制序列化
-    /// </summary>
-    public bool SupportsBinary => true;
-
-    /// <summary>
-    /// 是否支持字符串序列化
-    /// </summary>
-    public bool SupportsString => true;
-
-    /// <summary>
-    /// 序列化对象为字节数组
-    /// </summary>
-    /// <typeparam name="T">对象类型</typeparam>
-    /// <param name="value">要序列化的对象</param>
-    /// <returns>序列化后的字节数组</returns>
-    public byte[] Serialize<T>(T value)
+    /// <inheritdoc />
+    public byte[] Serialize<T>(T? value)
     {
-        if (value == null)
+        if (value is null)
         {
             return [];
         }
@@ -70,72 +54,21 @@ public class JsonCacheSerializer : ICacheSerializer
         }
     }
 
-    /// <summary>
-    /// 序列化对象为字符串
-    /// </summary>
-    /// <typeparam name="T">对象类型</typeparam>
-    /// <param name="value">要序列化的对象</param>
-    /// <returns>序列化后的字符串</returns>
-    public string SerializeToString<T>(T value)
+    /// <inheritdoc />
+    public T? Deserialize<T>(ReadOnlyMemory<byte> data)
     {
-        if (value == null)
-        {
-            return string.Empty;
-        }
-
-        try
-        {
-            return JsonSerializer.Serialize(value, _options);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Failed to serialize object of type {typeof(T).Name} to string", ex);
-        }
-    }
-
-    /// <summary>
-    /// 从字节数组反序列化对象
-    /// </summary>
-    /// <typeparam name="T">对象类型</typeparam>
-    /// <param name="data">序列化的字节数组</param>
-    /// <returns>反序列化后的对象</returns>
-    public T? Deserialize<T>(byte[] data)
-    {
-        if (data == null || data.Length == 0)
+        if (data.IsEmpty)
         {
             return default;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<T>(data, _options);
+            return JsonSerializer.Deserialize<T>(data.Span, _options);
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Failed to deserialize data to type {typeof(T).Name}", ex);
-        }
-    }
-
-    /// <summary>
-    /// 从字符串反序列化对象
-    /// </summary>
-    /// <typeparam name="T">对象类型</typeparam>
-    /// <param name="data">序列化的字符串</param>
-    /// <returns>反序列化后的对象</returns>
-    public T? DeserializeFromString<T>(string data)
-    {
-        if (string.IsNullOrEmpty(data))
-        {
-            return default;
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<T>(data, _options);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Failed to deserialize string data to type {typeof(T).Name}", ex);
         }
     }
 }

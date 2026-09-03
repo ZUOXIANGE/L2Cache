@@ -1,0 +1,8 @@
+<Project>
+  <!-- 仅对核心库（src）把警告升级为错误；benchmarks/tests/examples 保持警告可见但不阻断 CI -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

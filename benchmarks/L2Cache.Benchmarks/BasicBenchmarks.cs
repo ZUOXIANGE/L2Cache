@@ -8,7 +8,7 @@ namespace L2Cache.Benchmarks;
 [MemoryDiagnoser]
 public class BasicBenchmarks
 {
-    private ICacheService<string, object> _cache = null!;
+    private ICacheClient<string, string> _cache = null!;
     private IServiceProvider _serviceProvider = null!;
     private List<string> _batchKeys = null!;
 
@@ -20,26 +20,27 @@ public class BasicBenchmarks
         services.AddL2Cache(options =>
         {
             options.UseLocalCache = true;
-            options.UseRedis = false; // Only local cache
-        });
+            options.UseRedis = false; // 仅本地缓存
+        })
+        .AddCache<string, string>("bench_basic");
 
         _serviceProvider = services.BuildServiceProvider();
-        _cache = _serviceProvider.GetRequiredService<ICacheService<string, object>>();
+        _cache = _serviceProvider.GetRequiredService<ICacheClient<string, string>>();
 
-        // Setup for BatchGet
+        // BatchGet 预置数据
         _batchKeys = [];
         for (int i = 0; i < 100; i++)
         {
             var key = $"batch_key_{i}";
             _batchKeys.Add(key);
-            await _cache.PutAsync(key, new { Index = i, Data = $"data_{i}" });
+            await _cache.PutAsync(key, $"data_{i}");
         }
     }
 
     [Benchmark]
     public async Task BasicPut()
     {
-        await _cache.PutAsync($"key_{Guid.NewGuid()}", new { Value = "test data" });
+        await _cache.PutAsync($"key_{Guid.NewGuid()}", "test data");
     }
 
     [Benchmark]
@@ -54,4 +55,3 @@ public class BasicBenchmarks
         await _cache.BatchGetAsync(_batchKeys);
     }
 }
-

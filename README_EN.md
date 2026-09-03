@@ -1,62 +1,54 @@
 # L2Cache
 
-**High-Performance .NET Distributed Second-Level Cache Framework**
+**High-Performance .NET Multi-Level Cache Framework**
 
 [English](README_EN.md) | [中文](README.md)
 
-L2Cache is a modern distributed second-level cache library designed for .NET applications. It seamlessly blends local in-memory cache (L1) and Redis distributed cache (L2) to provide lightning-fast response capabilities and ultimate system reliability for high-concurrency applications.
+L2Cache is a modern multi-level cache library designed for .NET applications. It seamlessly blends local in-memory caching (L1) with Redis distributed caching (L2), providing blazing-fast response times and extreme reliability for high-concurrency applications through **region-based configuration** and **pluggable policies**.
 
 [![CI](https://github.com/ZUOXIANGE/L2Cache/actions/workflows/ci.yml/badge.svg)](https://github.com/ZUOXIANGE/L2Cache/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/L2Cache.svg)](https://www.nuget.org/packages/L2Cache)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/L2Cache.svg)](https://www.nuget.org/packages/L2Cache)
 [![License](https://img.shields.io/github/license/ZUOXIANGE/L2Cache)](LICENSE)
-[![Last Commit](https://img.shields.io/github/last-commit/ZUOXIANGE/L2Cache)](https://github.com/ZUOXIANGE/L2Cache/commits/main)
-[![GitHub Issues](https://img.shields.io/github/issues/ZUOXIANGE/L2Cache)](https://github.com/ZUOXIANGE/L2Cache/issues)
-[![GitHub Stars](https://img.shields.io/github/stars/ZUOXIANGE/L2Cache?style=social)](https://github.com/ZUOXIANGE/L2Cache/stargazers)
 
 ---
 
 ## ✨ Key Features
 
-- **🚀 Multi-Level Caching Architecture**
-  - **L1 (Memory)**: Based on `IMemoryCache`, providing nanosecond-level data access and automatically handling hot data.
-  - **L2 (Redis)**: Based on `StackExchange.Redis`, providing distributed sharing capabilities to ensure data consistency and persistence.
-  - **Pub/Sub Real-time Sync**: Uses Redis Pub/Sub mechanism to notify all nodes to clear corresponding L1 cache when L2 cache updates, ensuring strong cluster data consistency.
+- **🚀 Multi-Level Cache Architecture**
+  - **L1 (Memory)**: Based on `IMemoryCache` for nanosecond-level access, with a TTL ceiling as the final consistency fallback when Pub/Sub messages are lost.
+  - **L2 (Redis)**: Based on `StackExchange.Redis` for distributed sharing. All operations tolerate connection failures (degrading to miss / pure-memory mode on failure).
+  - **Pub/Sub Invalidation Sync**: L2 changes are broadcast in real time (with version-number deduplication), and each node clears the corresponding L1 entries.
 
-- **⚡ High-Performance Operations**
-  - **Batch Operations**: Supports batch APIs like `BatchGet`, `BatchPut`, `BatchEvict`. Uses Pipeline to reduce network RTT and significantly improve throughput.
-  - **Serialization Extensions**: Supports System.Text.Json (default) and MemoryPack for efficient binary serialization.
+- **🧩 Region-Based Configuration + Pluggable Policies**
+  - Each cache region (`AddCache<TKey, TValue>(name, ...)`) independently owns TTL, locking, null-value caching, invalidation broadcast, and more.
+  - Every policy interface is replaceable: key building (`IKeyBuilder`), expiration (`IExpiryPolicy`), locking (`ILockPolicy`), null values (`INullValuePolicy`), serialization (`ICacheSerializer`), invalidation bus (`ICacheInvalidationBus`), and telemetry (`ITelemetryProvider`).
 
-- **🛡️ High Availability & Fault Tolerance**
-  - **Fault Degradation**: Automatically degrades to pure memory mode when Redis is unavailable, ensuring uninterrupted service.
-  - **Auto Reconnection**: Built-in resilient Redis disconnection and reconnection mechanism.
-  - **Stampede Protection**: Supports background asynchronous refresh and cache preheating to avoid cache breakdown under high concurrency.
-  - **Concurrency Control**: Built-in memory locks (SemaphoreSlim) and distributed locks (Redis Lock) effectively prevent cache stampede and concurrent write conflicts.
+- **⚡ High-Performance Design**
+  - **Composition over Inheritance**: No base-class constraint — just inject `ICacheClient<TKey, TValue>`. Data-loading logic is decoupled via `ILoader`, which naturally supports Scoped dependencies (e.g., DbContext).
+  - **Batch Pipeline Optimization**: `BatchGet`/`BatchPut`/`BatchEvict` merge network round trips via Redis Pipeline.
+  - **Background Refresh**: Active keys are automatically refreshed on an interval (preferring the latest L2 value to avoid reload storms).
+  - **Zero-Waste Hot Path**: No tag allocations when telemetry is disabled; fixed-type invalidation messages use source-gen serialization (−28% allocations vs. reflection).
+
+- **🛡️ Built-In Cache Protection**
+  - **Anti-Stampede**: Segmented in-memory locks + distributed locks coalesce concurrent reloads; lock timeouts gracefully degrade to lock-free direct reads (availability first).
+  - **Anti-Penetration**: Optional null-value caching (`@@NULL@@` sentinel + dedicated TTL).
+  - **Anti-Avalanche**: Background refresh + TTL ceiling fallback.
 
 - **📊 Full-Link Observability**
-  - **Metrics**: Based on OpenTelemetry standards, out-of-the-box Prometheus/Grafana monitoring metrics.
-  - **Tracing**: Complete distributed tracing support to clearly gain insight into cache hits and penetration paths.
-  - **Logging**: Structured cache operation logs.
-  - **HealthCheck**: Integrated ASP.NET Core health check to monitor cache component status in real-time.
-
-- **🔌 Flexible & Easy to Use**
-  - **Out of the Box**: Simple API design, reasonable default configurations, ready to use with just a few lines of code.
-  - **Cache Aside**: Recommended to use the `L2CacheService` base class, which automatically handles "cache miss backfill" logic.
-  - **Pluggable**: Supports custom serialization (System.Text.Json, MemoryPack, etc.) and telemetry implementations.
+  - OpenTelemetry-standard `ActivitySource` (Tracing) and `Meter` (Metrics).
+  - Structured operation logs (Debug-level hit logs guarded by `IsEnabled`, zero overhead when disabled).
 
 ## 📚 Documentation
 
 | Document | Description |
 |------|------|
-| [**Getting Started**](docs/Getting-Started.md) | Integrate L2Cache into your project from scratch |
-| [**Configuration Guide**](docs/Configuration-Guide.md) | Detailed explanation of all configuration options and parameters |
-| [**API Reference**](docs/API-Reference.md) | Detailed description of core interfaces and classes |
-| [**Architecture**](docs/structure.md) | Understand the internal design principles of L2Cache |
-| [**Advanced Features**](docs/Advanced-Features.md) | Deep dive into locking mechanisms, concurrency control, and batch operations |
+| [**Getting Started**](docs/Getting-Started.md) | Integrate L2Cache from scratch |
+| [**Configuration Guide**](docs/Configuration-Guide.md) | Global and region configuration options in detail |
+| [**API Reference**](docs/API-Reference.md) | `ICacheClient`, `ILoader`, and policy interfaces |
+| [**Advanced Features**](docs/Advanced-Features.md) | Locking, null-value caching, background refresh, and invalidation sync internals |
+| [**Architecture**](docs/structure.md) | Internal architecture and module layout |
 
 ## 📦 Installation
-
-Install the core package via NuGet:
 
 ```bash
 dotnet add package L2Cache
@@ -65,75 +57,85 @@ dotnet add package L2Cache
 Install extension packages as needed:
 
 ```bash
-# Telemetry & Health Checks (Metrics, Tracing, HealthCheck)
+# Telemetry (OpenTelemetry Metrics/Tracing + health checks)
 dotnet add package L2Cache.Telemetry
 
-# High-Performance Binary Serialization (MemoryPack)
-dotnet add package L2Cache.Serializers.MemoryPack
+# Serialization extensions
+dotnet add package L2Cache.Serializers.Json      # System.Text.Json (default)
+dotnet add package L2Cache.Serializers.MemoryPack # High-performance binary
 ```
 
 ## 🚀 Quick Start
 
-Register services in `Program.cs`:
+### 1. Register Services
 
 ```csharp
-using L2Cache.Extensions;
+using L2Cache;
+using L2Cache.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddL2Cache(options =>
 {
-    // Enable L1 Memory Cache
-    options.UseLocalCache = true;
-    
-    // Enable L2 Redis Cache
-    options.UseRedis = true;
+    options.UseLocalCache = true;   // Enable L1 memory cache
+    options.UseRedis = true;        // Enable L2 Redis cache
     options.Redis.ConnectionString = builder.Configuration.GetConnectionString("Redis");
-
-    // Enable Concurrency Locks (Optional)
-    options.Lock.EnabledMemoryLock = true;
-    options.Lock.EnabledDistributedLock = true;
-    
-    // Enable Pub/Sub Message Subscription (Optional)
-    options.PubSub.Enabled = true;
 })
-.AddL2CacheTelemetry(); // Enable Telemetry
+.AddCache<int, ProductDto>("products", region =>
+{
+    region.DefaultTtl = TimeSpan.FromMinutes(30);
+})
+.WithLoader<ProductLoader>()       // Data loader (resolved from DI, supports Scoped dependencies)
+.WithBackgroundRefresh();          // Optional: background refresh
 ```
 
-Define and use cache service:
+### 2. Define a Loader
 
 ```csharp
-public class ProductCacheService : L2CacheService<int, ProductDto>
+public class ProductLoader : ILoader<int, ProductDto>
 {
     private readonly IProductRepository _repo;
 
-    public ProductCacheService(
-        IServiceProvider sp, 
-        IOptions<L2CacheOptions> opts, 
-        ILogger<L2CacheService<int, ProductDto>> logger,
-        IProductRepository repo) 
-        : base(sp, opts, logger)
-    {
-        _repo = repo;
-    }
+    public ProductLoader(IProductRepository repo) => _repo = repo;
 
-    // Define cache name prefix
-    public override string GetCacheName() => "products";
-    
-    // Define Key generation rule
-    public override string BuildCacheKey(int id) => id.ToString();
+    public async Task<ProductDto?> LoadAsync(int key, CancellationToken cancellationToken = default)
+        => await _repo.GetByIdAsync(key, cancellationToken);
 
-    // Define backfill logic (called when cache miss)
-    public override async Task<ProductDto?> QueryDataAsync(int id)
-    {
-        return await _repo.GetByIdAsync(id);
-    }
+    // Batch loading: translate to a single IN query in real scenarios
+    public async Task<Dictionary<int, ProductDto>> LoadManyAsync(
+        IReadOnlyList<int> keys, CancellationToken cancellationToken = default)
+        => await _repo.GetByIdsAsync(keys, cancellationToken);
 }
 ```
 
-## 🤝 Contribution
+### 3. Inject and Use
 
-Issues and Pull Requests are welcome!
+```csharp
+[ApiController]
+[Route("api/products")]
+public class ProductsController : ControllerBase
+{
+    private readonly ICacheClient<int, ProductDto> _cache;
+
+    public ProductsController(ICacheClient<int, ProductDto> cache) => _cache = cache;
+
+    [HttpGet("{id}")]
+    public async Task<ProductDto?> Get(int id)
+        => await _cache.GetOrLoadAsync(id);   // On miss, loads from source and backfills L1/L2
+
+    [HttpPut("{id}")]
+    public async Task Put(int id, ProductDto dto)
+        => await _cache.PutAsync(id, dto);    // Writes L1 + L2 and broadcasts invalidation
+
+    [HttpDelete("{id}")]
+    public async Task Delete(int id)
+        => await _cache.EvictAsync(id);       // Removes and broadcasts invalidation
+}
+```
+
+## 🤝 Contributing
+
+Issues and Pull Requests are welcome! Please run `dotnet test` and ensure all tests pass before submitting.
 
 ## 📄 License
 

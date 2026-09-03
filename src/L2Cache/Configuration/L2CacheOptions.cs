@@ -1,130 +1,63 @@
 namespace L2Cache.Configuration;
 
 /// <summary>
-/// L2Cache 配置选项
+/// L2Cache 全局配置选项。
+/// <para>区域级配置（TTL、锁、空值策略等）请使用 <see cref="CacheRegionOptions"/>，通过
+/// <c>AddL2Cache(...).AddCache&lt;TKey,TValue&gt;(name, configure)</c> 设置。</para>
 /// </summary>
 public class L2CacheOptions
 {
     /// <summary>
-    /// 是否启用本地缓存（L1）
+    /// 是否启用本地缓存（L1）。
     /// </summary>
     public bool UseLocalCache { get; set; } = true;
 
     /// <summary>
-    /// 是否启用 Redis 缓存（L2）
+    /// 是否启用 Redis 缓存（L2）。
     /// </summary>
     public bool UseRedis { get; set; }
 
     /// <summary>
-    /// Redis 缓存配置
+    /// Redis 连接配置。
     /// </summary>
-    public RedisCacheOptions Redis { get; set; } = new RedisCacheOptions();
+    public RedisCacheOptions Redis { get; set; } = new();
 
     /// <summary>
-    /// 遥测配置
+    /// 失效消息频道的名称前缀（频道完整名为 "{Prefix}:{CacheName}"）。
     /// </summary>
-    public L2Cache.Abstractions.Telemetry.TelemetryOptions Telemetry { get; set; } = new L2Cache.Abstractions.Telemetry.TelemetryOptions();
+    public string InvalidationChannelPrefix { get; set; } = "l2cache:sync";
 
     /// <summary>
-    /// 后台刷新配置
+    /// 后台刷新的全局默认配置（区域可通过 <c>WithBackgroundRefresh</c> 覆盖）。
     /// </summary>
-    public BackgroundRefreshOptions BackgroundRefresh { get; set; } = new BackgroundRefreshOptions();
+    public BackgroundRefreshOptions BackgroundRefresh { get; set; } = new();
 
     /// <summary>
-    /// 锁配置（用于解决缓存击穿和并发一致性问题）
+    /// 遥测配置。
     /// </summary>
-    public LockOptions Lock { get; set; } = new LockOptions();
+    public L2Cache.Abstractions.Telemetry.TelemetryOptions Telemetry { get; set; } = new();
 
     /// <summary>
-    /// Pub/Sub 配置（用于多级缓存同步）
-    /// </summary>
-    public PubSubOptions PubSub { get; set; } = new PubSubOptions();
-
-    /// <summary>
-    /// Redis 缓存配置类
+    /// Redis 连接配置。
     /// </summary>
     public class RedisCacheOptions
     {
-        /// <summary>
-        /// 连接字符串
-        /// </summary>
+        /// <summary>连接字符串。</summary>
         public string ConnectionString { get; set; } = "localhost:6379";
 
-        /// <summary>
-        /// 数据库索引
-        /// </summary>
+        /// <summary>数据库索引。</summary>
         public int Database { get; set; }
     }
+}
 
-    /// <summary>
-    /// 后台刷新配置类
-    /// </summary>
-    public class BackgroundRefreshOptions
-    {
-        /// <summary>
-        /// 是否启用后台刷新
-        /// </summary>
-        public bool Enabled { get; set; }
+/// <summary>
+/// 后台刷新配置。
+/// </summary>
+public class BackgroundRefreshOptions
+{
+    /// <summary>是否启用后台刷新。</summary>
+    public bool Enabled { get; set; }
 
-        /// <summary>
-        /// 刷新检查间隔
-        /// </summary>
-        public TimeSpan Interval { get; set; } = TimeSpan.FromMinutes(1);
-    }
-
-    /// <summary>
-    /// 锁配置类
-    /// </summary>
-    public class LockOptions
-    {
-        /// <summary>
-        /// 是否启用内存锁（防止单机缓存击穿）
-        /// <para>默认开启。</para>
-        /// </summary>
-        public bool EnabledMemoryLock { get; set; } = true;
-
-        /// <summary>
-        /// 是否启用分布式锁（防止分布式环境缓存击穿）
-        /// <para>需要开启 Redis。默认开启。</para>
-        /// </summary>
-        public bool EnabledDistributedLock { get; set; } = true;
-
-        /// <summary>
-        /// 锁等待超时时间
-        /// </summary>
-        public TimeSpan LockTimeout { get; set; } = TimeSpan.FromSeconds(10);
-
-        /// <summary>
-        /// 分布式锁过期时间（防止死锁）
-        /// </summary>
-        public TimeSpan DistributedLockExpiry { get; set; } = TimeSpan.FromSeconds(30);
-    }
-
-    /// <summary>
-    /// Pub/Sub 配置类
-    /// </summary>
-    public class PubSubOptions
-    {
-        /// <summary>
-        /// 是否启用 Pub/Sub 缓存同步
-        /// </summary>
-        public bool Enabled { get; set; }
-
-        /// <summary>
-        /// 订阅频道前缀
-        /// </summary>
-        public string ChannelPrefix { get; set; } = "l2cache:sync";
-    }
-
-    /// <summary>
-    /// 是否开启空值缓存（防止缓存穿透）
-    /// <para>默认关闭。</para>
-    /// </summary>
-    public bool CacheNullValues { get; set; }
-
-    /// <summary>
-    /// 空值缓存的过期时间
-    /// <para>建议设置较短的时间（如 30秒），防止数据不一致。</para>
-    /// </summary>
-    public TimeSpan NullValueExpiry { get; set; } = TimeSpan.FromSeconds(30);
+    /// <summary>默认刷新间隔（可被 ICacheRefreshPolicy 按Key 覆盖）。</summary>
+    public TimeSpan Interval { get; set; } = TimeSpan.FromMinutes(1);
 }
