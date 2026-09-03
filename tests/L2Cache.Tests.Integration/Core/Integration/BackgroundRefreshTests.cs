@@ -7,7 +7,7 @@ namespace L2Cache.Tests.Integration.Core.Integration;
 /// <summary>
 /// 后台刷新功能测试
 /// <para>
-/// 新架构下，后台刷新由 CacheRefreshBackgroundService（IHostedService）按 Interval 轮询驱动；
+/// 后台刷新由 CacheRefreshBackgroundService（IHostedService）按 Interval 轮询驱动；
 /// 集成测试中通过手动调用 <see cref="ICacheRefreshable{TKey}.RefreshKeyAsync"/> 验证单次刷新逻辑，
 /// 避免依赖真实定时轮询，保证确定性。
 /// </para>

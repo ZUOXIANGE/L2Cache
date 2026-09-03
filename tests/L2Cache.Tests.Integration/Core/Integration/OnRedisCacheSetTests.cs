@@ -8,7 +8,7 @@ namespace L2Cache.Tests.Integration.Core.Integration;
 /// <summary>
 /// Redis 缓存写入事件测试
 /// <para>
-/// 新架构下旧 API 的"写缓存触发事件"对应两方面的验证：
+/// "写缓存触发事件"对应两方面的验证：
 /// 1. PutAsync 应将 JSON 序列化后的值与指定的 TTL 写入 L2（Redis）；
 /// 2. PutAsync 应向失效频道（"{Prefix}:{CacheName}"）发布失效消息，通知其他节点清除各自的 L1。
 /// </para>

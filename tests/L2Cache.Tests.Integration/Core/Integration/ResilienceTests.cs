@@ -6,7 +6,7 @@ namespace L2Cache.Tests.Integration.Core.Integration;
 /// <summary>
 /// 弹性/韧性测试
 /// <para>
-/// 新架构下 L2 存储实现应容忍 Redis 连接故障（读失败视为未命中、写失败不抛异常）。
+/// L2 存储实现应容忍 Redis 连接故障（读失败视为未命中、写失败不抛异常）。
 /// 容器级故障注入难以稳定复现，这里验证 Redis 正常运行时数据被外部删除/破坏后的降级行为，
 /// 保证测试简单确定性。
 /// </para>

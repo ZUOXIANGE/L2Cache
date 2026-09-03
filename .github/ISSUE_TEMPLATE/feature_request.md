@@ -55,10 +55,10 @@ public interface INewFeature
 
 ```csharp
 // 使用示例
-var cacheService = serviceProvider.GetService<ICacheService<int, User>>();
+var cache = serviceProvider.GetRequiredService<ICacheClient<int, User>>();
 
 // 新功能的使用方式
-var result = await cacheService.NewFeatureAsync(parameters);
+var result = await cache.NewFeatureAsync(parameters);
 ```
 
 ## 🔄 替代方案

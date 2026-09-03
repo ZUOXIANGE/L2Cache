@@ -71,7 +71,7 @@ assignees: ''
 
 ```csharp
 // 您的代码示例
-public class ExampleCacheService : ICacheService<int, string>
+public class ExampleService(ICacheClient<int, string> cache)
 {
     // 重现问题的代码
 }
