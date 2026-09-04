@@ -126,30 +126,6 @@ public interface ITelemetryProvider : IDisposable
     void RecordCacheMetrics(CachePerformanceMetrics metrics);
 
     /// <summary>
-    /// 获取指定缓存的统计信息。
-    /// </summary>
-    /// <param name="cacheName">缓存名称。</param>
-    /// <returns>统计信息对象，如果不存在返回 null。</returns>
-    CacheStatistics? GetCacheStatistics(string cacheName);
-
-    /// <summary>
-    /// 获取所有已注册缓存的统计信息。
-    /// </summary>
-    /// <returns>缓存名称到统计信息的字典。</returns>
-    Dictionary<string, CacheStatistics> GetAllCacheStatistics();
-
-    /// <summary>
-    /// 重置指定缓存的统计信息。
-    /// </summary>
-    /// <param name="cacheName">缓存名称。</param>
-    void ResetStatistics(string cacheName);
-
-    /// <summary>
-    /// 重置所有缓存的统计信息。
-    /// </summary>
-    void ResetAllStatistics();
-
-    /// <summary>
     /// 创建一个计时器，用于测量代码块的执行时间。
     /// <para>Dispose 时自动记录时间。</para>
     /// </summary>

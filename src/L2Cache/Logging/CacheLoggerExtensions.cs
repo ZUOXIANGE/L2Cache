@@ -135,39 +135,6 @@ public static partial class CacheLoggerExtensions
         Exception exception, TimeSpan responseTime);
 
     /// <summary>
-    /// 记录缓存健康检查日志
-    /// </summary>
-    /// <param name="logger">日志记录器</param>
-    /// <param name="cacheName">缓存名称</param>
-    /// <param name="isHealthy">是否健康</param>
-    /// <param name="responseTime">响应时间</param>
-    /// <param name="details">详细信息</param>
-    public static void LogCacheHealthCheck(this ILogger logger, string cacheName, bool isHealthy,
-        TimeSpan responseTime, string? details = null)
-    {
-        if (isHealthy)
-        {
-            if (logger.IsEnabled(LogLevel.Debug))
-            {
-                LogCacheHealthCheckPassed(logger, cacheName, responseTime, details ?? "OK");
-            }
-        }
-        else
-        {
-            if (logger.IsEnabled(LogLevel.Warning))
-            {
-                LogCacheHealthCheckFailed(logger, cacheName, responseTime, details ?? "Unknown error");
-            }
-        }
-    }
-
-    [LoggerMessage(EventId = 1011, Level = LogLevel.Debug, Message = "Cache health check passed: {cacheName}, ResponseTime: {responseTime}, Details: {details}")]
-    public static partial void LogCacheHealthCheckPassed(this ILogger logger, string cacheName, TimeSpan responseTime, string details);
-
-    [LoggerMessage(EventId = 1012, Level = LogLevel.Warning, Message = "Cache health check failed: {cacheName}, ResponseTime: {responseTime}, Details: {details}")]
-    public static partial void LogCacheHealthCheckFailed(this ILogger logger, string cacheName, TimeSpan responseTime, string details);
-
-    /// <summary>
     /// 记录因锁争用跳过L1更新的日志
     /// </summary>
     /// <param name="logger">日志记录器</param>

@@ -10,6 +10,7 @@
 | [配置指南](Configuration-Guide.md) | `L2CacheOptions`（全局）与 `CacheRegionOptions`（区域）全量参数说明 |
 | [API 参考](API-Reference.md) | `ICacheClient`、`ILoader`、策略接口与扩展包 |
 | [高级特性](Advanced-Features.md) | 防击穿锁、空值缓存、后台刷新、失效同步原理 |
+| [遥测文档](Telemetry.md) | OpenTelemetry 指标/链路接入与语义 |
 | [架构设计](structure.md) | 内部模块划分、读写流程与设计原则 |
 
 ## 十分钟速览
@@ -41,6 +42,6 @@ public class OrderService(ICacheClient<int, OrderDto> cache)
 ## 示例与测试
 
 - **示例项目**：[examples/L2Cache.Examples](../examples/L2Cache.Examples/Program.cs) —— ASP.NET Core Web API，覆盖基础 CRUD、批量操作、自定义策略与遥测。
-- **单元测试**：`tests/L2Cache.Tests.Unit`（62 个）
+- **单元测试**：`tests/L2Cache.Tests.Unit`（53 个）
 - **集成测试**：`tests/L2Cache.Tests.Integration`（27 个，基于 Testcontainers 自动拉起 Redis）
 - **性能基准**：`benchmarks/L2Cache.Benchmarks`（BenchmarkDotNet）

@@ -17,16 +17,6 @@ public class NoOpTelemetryProvider : ITelemetryProvider
         GC.SuppressFinalize(this);
     }
 
-    public CacheStatistics? GetCacheStatistics(string cacheName)
-    {
-        return null;
-    }
-
-    public Dictionary<string, CacheStatistics> GetAllCacheStatistics()
-    {
-        return new Dictionary<string, CacheStatistics>();
-    }
-
     public void IncrementCounter(string name, long value = 1, IEnumerable<KeyValuePair<string, object>>? tags = null)
     {
     }
@@ -56,14 +46,6 @@ public class NoOpTelemetryProvider : ITelemetryProvider
     }
 
     public void RecordHistogram(string name, double value, IEnumerable<KeyValuePair<string, object>>? tags = null)
-    {
-    }
-
-    public void ResetAllStatistics()
-    {
-    }
-
-    public void ResetStatistics(string cacheName)
     {
     }
 

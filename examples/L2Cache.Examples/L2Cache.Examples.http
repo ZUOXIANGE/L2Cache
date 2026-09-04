@@ -1,9 +1,5 @@
 @HostAddress = http://localhost:5000
 
-### Health Check
-GET {{HostAddress}}/health
-Accept: application/json
-
 ### Basics - Set Cache
 POST {{HostAddress}}/api/basics/my-key?ttlSeconds=120
 Content-Type: application/json
@@ -50,14 +46,6 @@ Content-Type: application/json
 GET {{HostAddress}}/api/custom-inheritance/users/1
 Accept: application/json
 
-### Advanced - Cache Statistics
-GET {{HostAddress}}/api/advanced/stats
-Accept: application/json
-
-### Telemetry - Health
-GET {{HostAddress}}/api/telemetry/health
-Accept: application/json
-
-### Telemetry - Metrics
-GET {{HostAddress}}/api/telemetry/metrics
+### Advanced - Redis Status
+GET {{HostAddress}}/api/advanced/status
 Accept: application/json

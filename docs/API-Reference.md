@@ -132,7 +132,6 @@ builder.Services.AddL2CacheTelemetry();
 ```
 
 - `ITelemetryProvider`：`StartActivity`（Tracing）、`RecordCacheHit/Miss/Write/...`（Metrics 直方图与计数）、异常埋点。
-- `IHealthChecker` / `DefaultHealthChecker`：缓存健康状态组件。
 - 未安装 Telemetry 包时使用 NoOp 实现，全部调用为空操作且不产生分配。
 
 ## L2 存储容错语义

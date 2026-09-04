@@ -1,7 +1,10 @@
 using L2Cache.Abstractions.Telemetry;
 using L2Cache.Telemetry;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace L2Cache.Extensions;
 
@@ -11,23 +14,19 @@ namespace L2Cache.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// 添加 L2Cache 遥测和健康检查支持
+    /// 启用 L2Cache 遥测（将默认的 NoOpTelemetryProvider 替换为 DefaultTelemetryProvider）。
     /// </summary>
     /// <param name="services">服务集合</param>
-    /// <param name="configureHealthCheck">健康检查配置</param>
     /// <returns>服务集合</returns>
-    public static IServiceCollection AddL2CacheTelemetry(this IServiceCollection services, Action<HealthCheckerOptions>? configureHealthCheck = null)
+    public static IServiceCollection AddL2CacheTelemetry(this IServiceCollection services)
     {
-        // 替换默认的 NoOpTelemetryProvider 为 DefaultTelemetryProvider
-        services.Replace(ServiceDescriptor.Singleton<ITelemetryProvider, DefaultTelemetryProvider>());
-
-        // 配置健康检查选项
-        var healthOptions = new HealthCheckerOptions();
-        configureHealthCheck?.Invoke(healthOptions);
-        services.TryAddSingleton(healthOptions);
-
-        // 注册健康检查器
-        services.TryAddSingleton<IHealthChecker, DefaultHealthChecker>();
+        // 通过工厂注入 L1 MemoryCache 与 Redis 连接，驱动 Observable 状态仪表（条目数/连接状态）。
+        services.Replace(ServiceDescriptor.Singleton<ITelemetryProvider>(sp =>
+            new DefaultTelemetryProvider(
+                sp.GetService<TelemetryOptions>() ?? new TelemetryOptions(),
+                sp.GetRequiredService<ILogger<DefaultTelemetryProvider>>(),
+                sp.GetService<IMemoryCache>() as MemoryCache,
+                sp.GetService<IConnectionMultiplexer>())));
 
         return services;
     }

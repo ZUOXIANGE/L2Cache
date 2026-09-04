@@ -53,7 +53,7 @@ public sealed class CacheOrchestrator
 
         try
         {
-            return await ReadAsync(descriptor, key, fullKey, cancellationToken).ConfigureAwait(false);
+            return await ReadAsync(descriptor, key, fullKey, activity, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -84,7 +84,7 @@ public sealed class CacheOrchestrator
         try
         {
             // 1. 无锁首查
-            var result = await ReadAsync(descriptor, key, fullKey, cancellationToken).ConfigureAwait(false);
+            var result = await ReadAsync(descriptor, key, fullKey, activity, cancellationToken).ConfigureAwait(false);
             if (result.Status != CacheStatus.NotFound)
             {
                 return result;
@@ -98,7 +98,7 @@ public sealed class CacheOrchestrator
                 // 3. 双查（仅在成功获取锁后有意义；降级句柄跳过）
                 if (lockHandle is { Acquired: true })
                 {
-                    result = await ReadAsync(descriptor, key, fullKey, cancellationToken).ConfigureAwait(false);
+                    result = await ReadAsync(descriptor, key, fullKey, activity, cancellationToken).ConfigureAwait(false);
                     if (result.Status != CacheStatus.NotFound)
                     {
                         return result;
@@ -107,6 +107,7 @@ public sealed class CacheOrchestrator
 
                 // 4. 回源
                 var loaded = await loader.LoadAsync(key, cancellationToken).ConfigureAwait(false);
+                activity?.SetTag(TelemetryConstants.TagNames.Source, TelemetryConstants.TagValues.DataSource);
                 var elapsed = Stopwatch.GetElapsedTime(start);
 
                 if (loaded != null)
@@ -143,7 +144,7 @@ public sealed class CacheOrchestrator
     }
 
     /// <summary>内部读取管道：L1 → L2（L2 命中回填 L1）。返回 Found / FoundNull / NotFound。</summary>
-    private async Task<CacheValue<TValue>> ReadAsync<TKey, TValue>(CacheDescriptor<TKey, TValue> descriptor, TKey key, string fullKey, CancellationToken cancellationToken)
+    private async Task<CacheValue<TValue>> ReadAsync<TKey, TValue>(CacheDescriptor<TKey, TValue> descriptor, TKey key, string fullKey, Activity? activity, CancellationToken cancellationToken)
         where TKey : notnull
     {
         var start = Stopwatch.GetTimestamp();
@@ -161,6 +162,7 @@ public sealed class CacheOrchestrator
                 }
 
                 _telemetry.RecordCacheHit(cacheName, CacheLevel.L1, fullKey, Stopwatch.GetElapsedTime(start));
+                activity?.SetTag(TelemetryConstants.TagNames.Level, "L1");
 
                 return l1Entry.IsNullValue
                     ? CacheValue.FoundNull<TValue>()
@@ -187,6 +189,7 @@ public sealed class CacheOrchestrator
                 }
 
                 _telemetry.RecordCacheHit(cacheName, CacheLevel.L2, fullKey, Stopwatch.GetElapsedTime(start));
+                activity?.SetTag(TelemetryConstants.TagNames.Level, "L2");
 
                 if (descriptor.NullValue.IsNullPayload(entry.Payload))
                 {
@@ -385,6 +388,7 @@ public sealed class CacheOrchestrator
         using var activity = StartActivity(TelemetryConstants.ActivityNames.CacheReload, descriptor.CacheName, cacheKey);
 
         var value = await loader.LoadAsync(key, cancellationToken).ConfigureAwait(false);
+        activity?.SetTag(TelemetryConstants.TagNames.Source, TelemetryConstants.TagValues.DataSource);
 
         if (value != null)
         {
