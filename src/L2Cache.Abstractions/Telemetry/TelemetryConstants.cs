@@ -57,7 +57,8 @@ public static class TelemetryConstants
         public const string ErrorType = "error_type";
         public const string KeyPattern = "key_pattern";
         public const string ValueType = "value_type";
-        public const string Source = "source";
+        public const string Source = "cache.source";
+        public const string Level = "cache.level";
         public const string KeyCount = "key_count";
     }
 
@@ -74,5 +75,7 @@ public static class TelemetryConstants
         public const string Local = "local";
         public const string Redis = "redis";
         public const string Both = "both";
+        /// <summary>数据来源为底层数据源（回源，如数据库）。</summary>
+        public const string DataSource = "datasource";
     }
 }

@@ -46,6 +46,7 @@ L2Cache 是一个为 .NET 应用程序设计的现代化多级缓存库。它无
 | [**配置指南**](docs/Configuration-Guide.md) | 全局与区域配置选项详解 |
 | [**API 参考**](docs/API-Reference.md) | `ICacheClient`、`ILoader` 与策略接口说明 |
 | [**高级特性**](docs/Advanced-Features.md) | 锁机制、空值缓存、后台刷新与失效同步原理 |
+| [**遥测文档**](docs/Telemetry.md) | OpenTelemetry 指标/链路接入与语义 |
 | [**架构设计**](docs/structure.md) | 内部架构与模块划分 |
 
 ## 📦 安装
@@ -57,7 +58,7 @@ dotnet add package L2Cache
 按需安装扩展包：
 
 ```bash
-# 遥测（OpenTelemetry Metrics/Tracing + 健康检查器）
+# 遥测（OpenTelemetry Metrics/Tracing）
 dotnet add package L2Cache.Telemetry
 
 # 序列化扩展

@@ -57,12 +57,8 @@ dotnet run --project examples/L2Cache.Examples
    - 路由: `/api/custom-inheritance`
 
 4. **批量与高级场景 ([AdvancedController](L2Cache.Examples/Controllers/AdvancedController.cs))**
-   - 展示 `ITelemetryProvider` 缓存统计与 Redis 运行状态观测。
+   - 展示 L2（Redis）连接状态等运行观测。
    - 路由: `/api/advanced`
-
-5. **遥测观测 ([TelemetryController](L2Cache.Examples/Controllers/TelemetryController.cs))**
-   - 展示缓存统计指标的查询。
-   - 路由: `/api/telemetry`
 
 ### 核心注册代码
 
@@ -87,7 +83,7 @@ l2Cache.AddCache<int, ProductDto>("products", region =>
     .WithLoader<ProductLoader>()
     .WithBackgroundRefresh(refresh => refresh.Interval = TimeSpan.FromMinutes(1));
 
-// 可选：启用统计 + 健康检查
+// 可选：启用遥测（将 NoOp 替换为默认提供程序，输出指标/追踪）
 builder.Services.AddL2CacheTelemetry();
 ```
 

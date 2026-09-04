@@ -46,6 +46,7 @@ L2Cache is a modern multi-level cache library designed for .NET applications. It
 | [**Configuration Guide**](docs/Configuration-Guide.md) | Global and region configuration options in detail |
 | [**API Reference**](docs/API-Reference.md) | `ICacheClient`, `ILoader`, and policy interfaces |
 | [**Advanced Features**](docs/Advanced-Features.md) | Locking, null-value caching, background refresh, and invalidation sync internals |
+| [**Telemetry**](docs/Telemetry.md) | OpenTelemetry metrics/tracing setup & semantics |
 | [**Architecture**](docs/structure.md) | Internal architecture and module layout |
 
 ## 📦 Installation
@@ -57,7 +58,7 @@ dotnet add package L2Cache
 Install extension packages as needed:
 
 ```bash
-# Telemetry (OpenTelemetry Metrics/Tracing + health checks)
+# Telemetry (OpenTelemetry Metrics/Tracing)
 dotnet add package L2Cache.Telemetry
 
 # Serialization extensions

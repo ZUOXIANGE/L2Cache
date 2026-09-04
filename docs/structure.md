@@ -36,7 +36,7 @@ src/
 │   ├── Stores/                  #   IL1CacheStore / IL2CacheStore
 │   ├── Invalidation/            #   ICacheInvalidationBus + InvalidationMessage
 │   ├── Serialization/           #   ICacheSerializer
-│   └── Telemetry/               #   ITelemetryProvider 及健康检查抽象
+│   └── Telemetry/               #   ITelemetryProvider 遥测抽象
 ├── L2Cache/                     # 核心实现
 │   ├── Core/                    #   CacheOrchestrator / CacheClient / CacheDescriptor
 │   ├── Stores/                  #   MemoryCacheStore (L1) / RedisCacheStore (L2)
@@ -47,7 +47,7 @@ src/
 │   └── Configuration/           #   L2CacheOptions / CacheRegionOptions
 ├── L2Cache.Serializers.Json/    # System.Text.Json 序列化器
 ├── L2Cache.Serializers.MemoryPack/ # MemoryPack 序列化器
-└── L2Cache.Telemetry/           # OpenTelemetry 实现 + 健康检查器
+└── L2Cache.Telemetry/           # OpenTelemetry 指标/追踪默认实现
 ```
 
 ## 核心组件

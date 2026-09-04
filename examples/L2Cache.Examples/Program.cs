@@ -66,9 +66,6 @@ var l2Cache = builder.Services.AddL2Cache(options =>
     options.Telemetry.MetricsPrefix = "l2cache";
     options.Telemetry.ActivitySourceName = "L2Cache";
 
-    // Enable Health Check
-    options.Telemetry.EnableHealthCheck = true;
-
     // Background Refresh 全局默认间隔（区域可通过 WithBackgroundRefresh 覆盖）
     options.BackgroundRefresh.Enabled = true;
     options.BackgroundRefresh.Interval = TimeSpan.FromMinutes(1);
@@ -93,9 +90,9 @@ l2Cache.AddCache<int, UserDto>("users", region =>
     .WithLoader<CustomUserLoader>();
 
 // 序列化器：全局注册 MemoryPack 实现（默认 JSON，可替换为任意 ICacheSerializer 实现）
-builder.Services.AddSingleton<ICacheSerializer>(new MemoryPackCacheSerializer());
+//builder.Services.AddSingleton<ICacheSerializer>(new MemoryPackCacheSerializer());
 
-// 遥测：将默认的 NoOpTelemetryProvider 替换为 DefaultTelemetryProvider（统计 + 健康检查）
+// 遥测：将默认的 NoOpTelemetryProvider 替换为 DefaultTelemetryProvider（指标/追踪/统计）
 builder.Services.AddL2CacheTelemetry();
 
 // Add Controllers
@@ -135,9 +132,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthorization();
 app.MapControllers();
-
-// Health Check
-app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Timestamp = DateTime.UtcNow }));
 
 // Redirect root to Scalar
 app.MapGet("/", () => Results.Redirect("/scalar/v1"));

@@ -6,19 +6,14 @@ namespace L2Cache.Abstractions.Telemetry;
 public class TelemetryOptions
 {
     /// <summary>
-    /// 是否启用遥测
+    /// 是否启用遥测（关闭时默认提供程序零开销）
     /// </summary>
     public bool EnableTelemetry { get; set; } = true;
 
     /// <summary>
-    /// 活动源名称
+    /// 活动源名称（ActivitySource / Meter 名称，OTel 订阅用此名称）
     /// </summary>
     public string ActivitySourceName { get; set; } = "L2Cache";
-
-    /// <summary>
-    /// 活动源版本
-    /// </summary>
-    public string ActivitySourceVersion { get; set; } = "1.0.0";
 
     /// <summary>
     /// 是否启用指标
@@ -26,27 +21,17 @@ public class TelemetryOptions
     public bool EnableMetrics { get; set; } = true;
 
     /// <summary>
-    /// 指标前缀
+    /// 指标名称前缀
     /// </summary>
     public string MetricsPrefix { get; set; } = "l2cache";
 
     /// <summary>
-    /// 是否启用跟踪
+    /// 是否启用追踪（span）
     /// </summary>
     public bool EnableTracing { get; set; } = true;
 
     /// <summary>
-    /// 是否启用日志
-    /// </summary>
-    public bool EnableLogging { get; set; } = true;
-
-    /// <summary>
-    /// 采样率
-    /// </summary>
-    public double SamplingRatio { get; set; } = 1.0;
-
-    /// <summary>
-    /// 是否记录缓存键
+    /// 是否在遥测中记录缓存键（注意敏感数据）。默认 false：Trace 与 Metrics 均不落真实键
     /// </summary>
     public bool RecordCacheKeys { get; set; }
 
@@ -56,32 +41,7 @@ public class TelemetryOptions
     public bool RecordCacheValueSize { get; set; } = true;
 
     /// <summary>
-    /// 最大键长度
+    /// 记录缓存键时的最大键长度（超长截断）
     /// </summary>
     public int MaxKeyLength { get; set; } = 100;
-
-    /// <summary>
-    /// 指标收集间隔
-    /// </summary>
-    public TimeSpan MetricsCollectionInterval { get; set; } = TimeSpan.FromSeconds(30);
-
-    /// <summary>
-    /// 是否启用详细指标
-    /// </summary>
-    public bool EnableDetailedMetrics { get; set; }
-
-    /// <summary>
-    /// 自定义标签
-    /// </summary>
-    public Dictionary<string, object> CustomTags { get; set; } = new();
-
-    /// <summary>
-    /// 是否启用健康检查
-    /// </summary>
-    public bool EnableHealthCheck { get; set; } = true;
-
-    /// <summary>
-    /// 健康检查间隔
-    /// </summary>
-    public TimeSpan HealthCheckInterval { get; set; } = TimeSpan.FromSeconds(60);
 }
